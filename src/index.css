@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@config "../tailwind.config.js";
+
+@theme {
+  --color-primary: #1A56DB;
+  --color-secondary: #0E9F6E;
+  --color-danger: #C81E1E;
+  --color-warning: #E3A008;
+  --font-sans: 'Inter', sans-serif;
+}
+
+body {
+  @apply antialiased bg-gray-50 text-gray-900;
+}
