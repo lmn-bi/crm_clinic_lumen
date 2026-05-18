@@ -5,10 +5,10 @@ import { supabase } from '../lib/supabaseClient'
  * Hook para obtener y mantener sincronizadas las citas en tiempo real.
  * @param {Date} inicioSemana - Inicio del rango (en UTC)
  * @param {Date} finSemana - Fin del rango (en UTC)
- * @param {string|null} doctorIdFiltro - UUID del doctor o null para todos
+ * @param {Array<string>} doctoresFiltro - Array de UUIDs de doctores, vacío significa "todos"
  * @returns {{ citas: Array, loading: boolean, error: string|null, refetch: Function }}
  */
-export default function useCitasRealtime(inicioSemana, finSemana, doctorIdFiltro) {
+export default function useCitasRealtime(inicioSemana, finSemana, doctoresFiltro = []) {
   const [citas, setCitas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -30,8 +30,8 @@ export default function useCitasRealtime(inicioSemana, finSemana, doctorIdFiltro
         .lte('inicio', finSemana.toISOString())
         .neq('estado', 'cancelada')
       
-      if (doctorIdFiltro) {
-        query = query.eq('doctor_id', doctorIdFiltro)
+      if (doctoresFiltro.length > 0) {
+        query = query.in('doctor_id', doctoresFiltro)
       }
 
       const { data, error: fetchError } = await query
@@ -66,7 +66,8 @@ export default function useCitasRealtime(inicioSemana, finSemana, doctorIdFiltro
             // Verificar si entra en el rango actual y filtros
             const inicioDate = new Date(newCita.inicio)
             if (inicioDate >= inicioSemana && inicioDate <= finSemana && newCita.estado !== 'cancelada') {
-              if (!doctorIdFiltro || newCita.doctor_id === doctorIdFiltro) {
+              const matchesDoctor = doctoresFiltro.length === 0 || doctoresFiltro.includes(newCita.doctor_id)
+              if (matchesDoctor) {
                 // Evitar duplicados por race conditions
                 if (!prev.find(c => c.id === newCita.id)) {
                   return [...prev, newCita]
@@ -92,7 +93,7 @@ export default function useCitasRealtime(inicioSemana, finSemana, doctorIdFiltro
             // Si la cita editada cae fuera del rango actual, o ha sido cancelada, o no cumple filtro, la quitamos
             const inRange = inicioDate >= inicioSemana && inicioDate <= finSemana
             const isCanceled = updatedCita.estado === 'cancelada'
-            const matchesDoctor = !doctorIdFiltro || updatedCita.doctor_id === doctorIdFiltro
+            const matchesDoctor = doctoresFiltro.length === 0 || doctoresFiltro.includes(updatedCita.doctor_id)
 
             if (!inRange || isCanceled || !matchesDoctor) {
               return prev.filter(c => c.id !== updatedCita.id)
@@ -117,7 +118,7 @@ export default function useCitasRealtime(inicioSemana, finSemana, doctorIdFiltro
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [inicioSemana, finSemana, doctorIdFiltro])
+  }, [inicioSemana, finSemana, JSON.stringify(doctoresFiltro)])
 
   return { citas, loading, error, refetch: fetchCitas }
 }

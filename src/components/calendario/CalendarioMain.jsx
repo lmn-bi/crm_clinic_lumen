@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Phone, Clock } from 'lucide-react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { ChevronLeft, ChevronRight, Phone } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabaseClient'
 import useCitasRealtime from '../../hooks/useCitasRealtime'
@@ -9,11 +9,10 @@ import CitaDetailModal from './CitaDetailModal'
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 const HORAS = Array.from({ length: 13 }, (_, i) => i + 8) // 8 a 20 (13 horas)
 
-// Helper para obtener el Lunes de una fecha
 function getLunes(d) {
   const date = new Date(d)
   const day = date.getDay()
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1) // Ajuste si es Domingo (0)
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1)
   return new Date(date.setDate(diff))
 }
 
@@ -21,10 +20,8 @@ export default function CalendarioMain() {
   const { perfil } = useAuth()
   const isAdmin = perfil?.rol === 'admin'
 
-  // Estados de tiempo
   const [currentDate, setCurrentDate] = useState(new Date())
   
-  // Derivar inicio y fin de la semana visible en base a currentDate (Lunes a Domingo)
   const inicioSemana = useMemo(() => {
     const l = getLunes(currentDate)
     l.setHours(0, 0, 0, 0)
@@ -38,39 +35,50 @@ export default function CalendarioMain() {
     return f
   }, [inicioSemana])
 
-  // Filtros
+  // Cambio 8: Filtro multi-doctor
   const [doctores, setDoctores] = useState([])
-  const [doctorIdFiltro, setDoctorIdFiltro] = useState('')
+  const [doctoresFiltro, setDoctoresFiltro] = useState([]) // array de UUIDs
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const filterRef = useRef(null)
 
-  // Efecto para inicializar el filtro de doctor según rol
   useEffect(() => {
     if (perfil) {
       if (isAdmin) {
-        // Cargar lista de doctores para el admin
-        supabase.from('doctores').select('id, nombre, apellidos').eq('activo', true)
+        supabase.from('doctores').select('id, nombre, apellidos, color_calendario').eq('activo', true)
           .then(({ data }) => setDoctores(data || []))
-        setDoctorIdFiltro('') // "Todos"
+        setDoctoresFiltro([])
       } else {
-        // El doctor solo se ve a sí mismo
-        setDoctorIdFiltro(perfil.doctor_id)
+        setDoctoresFiltro([perfil.doctor_id])
       }
     }
   }, [perfil, isAdmin])
 
-  // Hook de citas
-  const { citas, loading } = useCitasRealtime(inicioSemana, finSemana, doctorIdFiltro || null)
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setIsFilterOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
-  // Estados para Modales
+  const toggleDoctorFiltro = (doctorId) => {
+    setDoctoresFiltro(prev => {
+      const next = prev.includes(doctorId) ? prev.filter(id => id !== doctorId) : [...prev, doctorId]
+      return next.length === 0 ? [] : next
+    })
+  }
+
+  const { citas, loading } = useCitasRealtime(inicioSemana, finSemana, doctoresFiltro)
+
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
-  
   const [selectedCita, setSelectedCita] = useState(null)
   
-  // Pre-seleccionados para el Form
   const [formFechaStr, setFormFechaStr] = useState('')
   const [formHoraStr, setFormHoraStr] = useState('')
 
-  // Manejadores de navegación
   const prevWeek = () => {
     const d = new Date(currentDate)
     d.setDate(d.getDate() - 7)
@@ -87,10 +95,8 @@ export default function CalendarioMain() {
     setCurrentDate(new Date())
   }
 
-  // Renderizado del título
   const tituloRango = `${inicioSemana.getDate()} ${inicioSemana.toLocaleDateString('es-ES', { month: 'short' })} - ${finSemana.getDate()} ${finSemana.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}`
 
-  // Calcular días de la semana
   const diasSemana = useMemo(() => {
     return DIAS.map((nombreDia, idx) => {
       const d = new Date(inicioSemana)
@@ -98,24 +104,20 @@ export default function CalendarioMain() {
       return {
         nombre: nombreDia,
         fechaStrLocal: d.toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid' }),
-        fechaStrISO: d.toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' }), // YYYY-MM-DD
+        fechaStrISO: d.toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' }),
         esHoy: d.toDateString() === new Date().toDateString(),
         fechaObj: d
       }
     })
   }, [inicioSemana])
 
-  // Manejar clic en un hueco vacío
   const handleSlotClick = (fechaStrISO, hora) => {
     setFormFechaStr(fechaStrISO)
     setFormHoraStr(`${hora.toString().padStart(2, '0')}:00`)
     setIsFormOpen(true)
   }
 
-  // Calcular posición y altura (1 min = 1px, 1 hora = 60px)
-  // Inicio a las 08:00 (offset = 8 * 60 = 480px)
   const getCitaStyle = (cita) => {
-    // Usamos la hora de España para posicionar visualmente correctamente
     const dateInicio = new Date(cita.inicio)
     const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Madrid', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
     const timeParts = formatter.formatToParts(dateInicio)
@@ -123,12 +125,12 @@ export default function CalendarioMain() {
     const min = parseInt(timeParts.find(p => p.type === 'minute').value)
     
     const minutesFromStartOfDay = hour * 60 + min
-    const offsetBase = 8 * 60 // El grid empieza a las 08:00
+    const offsetBase = 8 * 60
     
-    // Si la cita empieza antes de las 8, o termina después de las 20, requeriría lógica extra, 
-    // pero limitaremos visualmente (clipping).
-    const topPx = Math.max(0, minutesFromStartOfDay - offsetBase)
-    const heightPx = cita.duracion_min || 30 // Fallback
+    // Cambio 7: Escala de 80px por hora
+    const SCALE = 80 / 60
+    const topPx = Math.max(0, (minutesFromStartOfDay - offsetBase) * SCALE)
+    const heightPx = Math.max(20, (cita.duracion_min || 30) * SCALE)
     
     const color = cita.doctores?.color_calendario || '#3B82F6'
 
@@ -136,22 +138,31 @@ export default function CalendarioMain() {
       top: `${topPx}px`,
       height: `${heightPx}px`,
       backgroundColor: color,
-      borderLeftColor: adjustColor(color, -30) // Borde izquierdo un poco más oscuro
+      borderLeftColor: adjustColor(color, -30)
     }
   }
 
-  // Utilidad para oscurecer el color hex para el borde
   const adjustColor = (color, amount) => {
     return '#' + color.replace(/^#/, '').replace(/../g, color => ('0'+Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
   }
 
-  // Agrupar citas por día (usando YYYY-MM-DD en hora local)
+  // Cambio 5: Semáforo de Cita
+  const getSemaforoColor = (estado) => {
+    switch (estado) {
+      case 'pendiente': return 'bg-yellow-400'
+      case 'completada': return 'bg-green-400'
+      case 'no_show': return 'bg-gray-600'
+      case 'confirmada':
+      case 'cancelada':
+      default: return null
+    }
+  }
+
   const citasPorDia = useMemo(() => {
     const grupos = {}
     diasSemana.forEach(d => grupos[d.fechaStrISO] = [])
     
     citas.forEach(cita => {
-      // Formateamos la fecha en zona horaria local para saber a qué columna pertenece
       const isoLocal = new Date(cita.inicio).toLocaleDateString('en-CA', { timeZone: 'Europe/Madrid' })
       if (grupos[isoLocal]) {
         grupos[isoLocal].push(cita)
@@ -185,32 +196,52 @@ export default function CalendarioMain() {
 
         {/* Filtro de doctores (Solo admin) */}
         {isAdmin && (
-          <div className="flex items-center">
+          <div className="relative flex items-center" ref={filterRef}>
             <label className="text-sm text-gray-500 mr-2">Ver agenda de:</label>
-            <select
-              value={doctorIdFiltro}
-              onChange={(e) => setDoctorIdFiltro(e.target.value)}
-              className="border-gray-300 rounded-md text-sm focus:ring-primary focus:border-primary py-1.5 pl-3 pr-8"
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white hover:bg-gray-50 flex items-center gap-2"
             >
-              <option value="">Todos los doctores</option>
-              {doctores.map(d => (
-                <option key={d.id} value={d.id}>Dr. {d.nombre} {d.apellidos}</option>
-              ))}
-            </select>
+              {doctoresFiltro.length === 0 ? 'Todos los doctores ▼' : 
+               doctoresFiltro.length === 1 ? '1 doctor ▼' : 
+               `${doctoresFiltro.length} doctores ▼`}
+            </button>
+            
+            {isFilterOpen && (
+              <div className="absolute top-full right-0 z-50 bg-white shadow-lg rounded-md border border-gray-200 min-w-[220px] mt-1 py-1">
+                <label className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-100">
+                  <input type="checkbox" checked={doctoresFiltro.length === 0} onChange={() => setDoctoresFiltro([])} />
+                  Todos los doctores
+                </label>
+                <div className="max-h-60 overflow-y-auto">
+                  {doctores.map(doctor => (
+                    <label key={doctor.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={doctoresFiltro.includes(doctor.id)}
+                        onChange={() => toggleDoctorFiltro(doctor.id)} 
+                      />
+                      <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: doctor.color_calendario || '#3B82F6' }}></span>
+                      <span className="text-sm text-gray-700 truncate">Dr/a. {doctor.nombre} {doctor.apellidos}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* GRID DEL CALENDARIO */}
       <div className="flex flex-1 overflow-auto">
-        <div className="flex w-full min-w-[800px]"> {/* Aseguramos scroll en móvil */}
+        <div className="flex w-full min-w-[800px]">
           
           {/* Columna de Horas */}
           <div className="w-16 flex-none bg-white border-r border-gray-200 z-10 sticky left-0">
-            <div className="h-12 border-b border-gray-200 bg-gray-50"></div> {/* Espacio vacío arriba izquierda */}
-            <div className="relative" style={{ height: `${HORAS.length * 60}px` }}>
+            <div className="h-12 border-b border-gray-200 bg-gray-50"></div>
+            <div className="relative" style={{ height: `${HORAS.length * 80}px` }}>
               {HORAS.map((h, i) => (
-                <div key={h} className="absolute w-full text-right pr-2 text-xs text-gray-400 -mt-2" style={{ top: `${i * 60}px` }}>
+                <div key={h} className="absolute w-full text-right pr-2 text-xs text-gray-400 -mt-2" style={{ top: `${i * 80}px` }}>
                   {h}:00
                 </div>
               ))}
@@ -219,29 +250,28 @@ export default function CalendarioMain() {
 
           {/* Días y Columnas */}
           <div className="flex-1 flex bg-gray-50 relative">
-            {diasSemana.map((dia, index) => (
+            {diasSemana.map((dia) => (
               <div key={dia.fechaStrISO} className="flex-1 border-r border-gray-200 min-w-[100px] flex flex-col">
-                {/* Cabecera del día */}
                 <div className={`h-12 border-b border-gray-200 flex flex-col items-center justify-center sticky top-0 z-10 ${dia.esHoy ? 'bg-blue-50' : 'bg-white'}`}>
                   <span className={`text-xs uppercase font-medium ${dia.esHoy ? 'text-primary' : 'text-gray-500'}`}>{dia.nombre}</span>
                   <span className={`text-lg leading-tight ${dia.esHoy ? 'font-bold text-primary' : 'text-gray-900'}`}>{dia.fechaObj.getDate()}</span>
                 </div>
 
-                {/* Slots y Citas */}
-                <div className="relative flex-1 bg-white" style={{ height: `${HORAS.length * 60}px` }}>
-                  {/* Líneas divisorias de horas */}
+                <div className="relative flex-1 bg-white" style={{ height: `${HORAS.length * 80}px` }}>
+                  {/* Slots */}
                   {HORAS.map((h, i) => (
                     <div 
                       key={`slot-${dia.fechaStrISO}-${h}`} 
                       className="absolute w-full border-b border-gray-100 hover:bg-gray-50 cursor-pointer" 
-                      style={{ top: `${i * 60}px`, height: '60px' }}
+                      style={{ top: `${i * 80}px`, height: '80px' }}
                       onClick={() => handleSlotClick(dia.fechaStrISO, h)}
                     />
                   ))}
 
-                  {/* Renderizado de citas */}
+                  {/* Citas */}
                   {citasPorDia[dia.fechaStrISO]?.map(cita => {
                     const style = getCitaStyle(cita)
+                    const dotColor = getSemaforoColor(cita.estado)
                     
                     return (
                       <div
@@ -251,10 +281,21 @@ export default function CalendarioMain() {
                         style={style}
                         title={`${cita.tipo_tratamiento} - ${cita.pacientes?.nombre} ${cita.pacientes?.apellidos}`}
                       >
+                        {/* Cambio 5: Semáforo en bloques */}
+                        {dotColor && (
+                          <span className={`absolute top-1 right-1 w-2 h-2 rounded-full ${dotColor} ring-1 ring-white z-10`}></span>
+                        )}
+                        
                         <div className="px-1.5 py-0.5 text-xs leading-tight h-full overflow-hidden flex flex-col">
-                          <div className="font-semibold truncate flex items-center justify-between">
-                            <span className="truncate">{cita.pacientes?.nombre}</span>
-                            {cita.origen === 'telefono' && <Phone className="w-3 h-3 ml-1 flex-shrink-0" />}
+                          <div className="font-semibold truncate flex items-center justify-between pr-3">
+                            {/* Cambio 6: Nombre completo */}
+                            <span className="truncate">{cita.pacientes?.nombre} {cita.pacientes?.apellidos}</span>
+                            {/* Cambio 9: Tooltip teléfono */}
+                            {cita.origen === 'telefono' && (
+                              <div title="Cita creada por Agente de Voz">
+                                <Phone className="w-3 h-3 ml-1 flex-shrink-0" />
+                              </div>
+                            )}
                           </div>
                           <div className="text-[10px] opacity-90 truncate mt-0.5">
                             {cita.tipo_tratamiento}
@@ -264,18 +305,16 @@ export default function CalendarioMain() {
                     )
                   })}
 
-                  {/* Línea roja de hora actual (solo si esHoy) */}
+                  {/* Cambio 7: Línea roja hora actual adaptada a SCALE */}
                   {dia.esHoy && (() => {
                     const ahora = new Date()
                     const currHour = ahora.getHours()
                     const currMin = ahora.getMinutes()
                     if (currHour >= 8 && currHour < 20) {
-                      const top = (currHour - 8) * 60 + currMin
+                      const SCALE = 80 / 60
+                      const top = ((currHour - 8) * 60 + currMin) * SCALE
                       return (
-                        <div 
-                          className="absolute w-full border-t-2 border-red-500 z-20 pointer-events-none" 
-                          style={{ top: `${top}px` }}
-                        >
+                        <div className="absolute w-full border-t-2 border-red-500 z-20 pointer-events-none" style={{ top: `${top}px` }}>
                           <div className="absolute -left-1.5 -top-1.5 w-3 h-3 rounded-full bg-red-500"></div>
                         </div>
                       )
@@ -289,20 +328,19 @@ export default function CalendarioMain() {
         </div>
       </div>
 
-      {/* MODALES */}
       <CitaFormModal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         fechaInicio={formFechaStr}
         horaInicio={formHoraStr}
-        onSaveSuccess={() => { /* Realtime lo actualiza solo */ setIsFormOpen(false) }}
+        onSaveSuccess={() => { setIsFormOpen(false) }}
       />
 
       <CitaDetailModal
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
         cita={selectedCita}
-        onSaveSuccess={() => { /* Realtime lo actualiza solo */ }}
+        onSaveSuccess={() => {}}
       />
     </div>
   )
