@@ -30,12 +30,11 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
 
-  // Opciones de horas (08:00 a 19:30 cada 30 min)
+  // Opciones de horas (08:00 a 19:45 cada 15 min)
   const timeOptions = []
   for (let h = 8; h <= 19; h++) {
-    for (let m of ['00', '30']) {
-      const hourStr = h.toString().padStart(2, '0')
-      timeOptions.push(`${hourStr}:${m}`)
+    for (let m of ['00', '15', '30', '45']) {
+      timeOptions.push(`${h.toString().padStart(2, '0')}:${m}`)
     }
   }
 
@@ -119,9 +118,13 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
 
     // Autocompletar duración si cambia el tratamiento
     if (name === 'tipo_tratamiento') {
-      const tipoObj = tiposTratamiento.find(t => t.nombre === value)
-      if (tipoObj) {
-        setDuracionMin(tipoObj.duracion_min)
+      if (value === 'Otros') {
+        // Dejar duracionMin como estaba, pero editable
+      } else {
+        const tipoObj = tiposTratamiento.find(t => t.nombre === value)
+        if (tipoObj) {
+          setDuracionMin(tipoObj.duracion_min)
+        }
       }
     }
   }
@@ -335,14 +338,18 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
                       {tiposTratamiento.map(tipo => (
                         <option key={tipo.id} value={tipo.nombre}>{tipo.nombre}</option>
                       ))}
+                      <option value="Otros">Otros (Duración manual)</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Duración (min)</label>
                     <input
-                      type="text" disabled
-                      value={formData.tipo_tratamiento ? duracionMin : '-'}
-                      className="block w-full mt-1 bg-gray-50 border-gray-300 rounded-md shadow-sm sm:text-sm py-2 px-3 border text-gray-500"
+                      type="number" 
+                      disabled={formData.tipo_tratamiento !== 'Otros'}
+                      value={formData.tipo_tratamiento ? duracionMin : ''}
+                      onChange={(e) => setDuracionMin(e.target.value)}
+                      min="5" step="5"
+                      className={`block w-full mt-1 rounded-md shadow-sm sm:text-sm py-2 px-3 border ${formData.tipo_tratamiento === 'Otros' ? 'bg-white border-gray-300 focus:ring-primary focus:border-primary' : 'bg-gray-50 border-gray-300 text-gray-500'}`}
                     />
                   </div>
                 </div>

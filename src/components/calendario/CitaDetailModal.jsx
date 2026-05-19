@@ -24,10 +24,10 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
   const [editTipos, setEditTipos] = useState([])
   const [editDuracion, setEditDuracion] = useState(30)
 
-  // Generar timeOptions
+  // Generar timeOptions (cada 15 min)
   const timeOptions = []
   for (let h = 8; h <= 19; h++) {
-    for (let m of ['00', '30']) {
+    for (let m of ['00', '15', '30', '45']) {
       timeOptions.push(`${h.toString().padStart(2, '0')}:${m}`)
     }
   }
@@ -123,6 +123,12 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
 
   // Acciones Rápidas
   const handleUpdateEstado = async (nuevoEstado) => {
+    if (nuevoEstado === 'cancelada') {
+      if (!window.confirm(`¿Estás seguro de que deseas cancelar la cita de ${cita.pacientes?.nombre} ${cita.pacientes?.apellidos}?`)) {
+        return
+      }
+    }
+    
     setLoading(true)
     setErrorMsg('')
     try {
@@ -165,13 +171,24 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
     setEditData(prev => ({ ...prev, [name]: value }))
 
     if (name === 'tipo_tratamiento') {
-      const tipoObj = editTipos.find(t => t.nombre === value)
-      if (tipoObj) setEditDuracion(tipoObj.duracion_min)
+      if (value === 'Otros') {
+        // Dejar editDuracion como está, pero hacerla editable
+      } else {
+        const tipoObj = editTipos.find(t => t.nombre === value)
+        if (tipoObj) setEditDuracion(tipoObj.duracion_min)
+      }
     }
   }
 
   const handleSaveEdicion = async (e) => {
     e.preventDefault()
+
+    if (editData.estado === 'cancelada' && cita.estado !== 'cancelada') {
+      if (!window.confirm(`¿Estás seguro de que deseas cancelar la cita de ${cita.pacientes?.nombre} ${cita.pacientes?.apellidos}?`)) {
+        return
+      }
+    }
+
     setLoading(true)
     setErrorMsg('')
     try {
@@ -294,13 +311,18 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
                       >
                         <option value="" disabled>Seleccione tratamiento</option>
                         {editTipos.map(t => <option key={t.id} value={t.nombre}>{t.nombre}</option>)}
+                        <option value="Otros">Otros (Duración manual)</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Duración</label>
+                      <label className="block text-sm font-medium text-gray-700">Duración (min)</label>
                       <input
-                        type="text" disabled value={`${editDuracion} min`}
-                        className="mt-1 block w-full bg-gray-50 text-gray-500 pl-3 pr-10 py-2 text-base border-gray-300 sm:text-sm rounded-md border"
+                        type="number" 
+                        disabled={editData.tipo_tratamiento !== 'Otros'}
+                        value={editData.tipo_tratamiento ? editDuracion : ''}
+                        onChange={(e) => setEditDuracion(e.target.value)}
+                        min="5" step="5"
+                        className={`block w-full mt-1 rounded-md shadow-sm sm:text-sm py-2 px-3 border ${editData.tipo_tratamiento === 'Otros' ? 'bg-white border-gray-300 focus:ring-primary focus:border-primary' : 'bg-gray-50 border-gray-300 text-gray-500'}`}
                       />
                     </div>
                   </div>

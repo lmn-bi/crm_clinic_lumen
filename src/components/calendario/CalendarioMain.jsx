@@ -112,9 +112,9 @@ export default function CalendarioMain() {
     })
   }, [inicioSemana])
 
-  const handleSlotClick = (fechaStrISO, hora) => {
+  const handleSlotClick = (fechaStrISO, hora, minuto = 0) => {
     setFormFechaStr(fechaStrISO)
-    setFormHoraStr(`${hora.toString().padStart(2, '0')}:00`)
+    setFormHoraStr(`${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`)
     setIsFormOpen(true)
   }
 
@@ -128,7 +128,7 @@ export default function CalendarioMain() {
     e.preventDefault() // Necesario para permitir soltar
   }
 
-  const handleDrop = async (e, fechaStrISO, hora) => {
+  const handleDrop = async (e, fechaStrISO, hora, minuto = 0) => {
     e.preventDefault()
     const citaId = e.dataTransfer.getData('citaId')
     const duracionMin = parseInt(e.dataTransfer.getData('duracionMin'), 10)
@@ -136,7 +136,7 @@ export default function CalendarioMain() {
     if (!citaId) return
 
     // Calcular la nueva fecha/hora de inicio
-    const startDate = new Date(`${fechaStrISO}T${hora.toString().padStart(2, '0')}:00`)
+    const startDate = new Date(`${fechaStrISO}T${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}:00`)
     // Asumir que la hora es en la zona horaria de España
     const endDate = new Date(startDate.getTime() + duracionMin * 60000)
 
@@ -302,17 +302,21 @@ export default function CalendarioMain() {
                 </div>
 
                 <div className={`relative flex-1 ${dia.esFinDeSemana ? 'bg-gray-100' : 'bg-white'}`} style={{ height: `${HORAS.length * 120}px` }}>
-                  {/* Slots */}
-                  {HORAS.map((h, i) => (
-                    <div 
-                      key={`slot-${dia.fechaStrISO}-${h}`} 
-                      className={`absolute w-full border-b border-gray-100 cursor-pointer ${dia.esFinDeSemana ? 'hover:bg-gray-200' : 'hover:bg-gray-50'}`} 
-                      style={{ top: `${i * 120}px`, height: '120px' }}
-                      onClick={() => handleSlotClick(dia.fechaStrISO, h)}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, dia.fechaStrISO, h)}
-                    />
-                  ))}
+                  {/* Slots de 15 minutos */}
+                  {HORAS.flatMap((h, i) => 
+                    [0, 15, 30, 45].map((m, mIdx) => (
+                      <div
+                        key={`slot-${dia.fechaStrISO}-${h}-${m}`}
+                        className={`absolute w-full cursor-pointer 
+                          ${m === 0 ? 'border-t border-gray-300' : 'border-t border-gray-200 border-dashed'}
+                          ${dia.esFinDeSemana ? 'hover:bg-gray-200' : 'hover:bg-gray-50'}`}
+                        style={{ top: `${i * 120 + mIdx * 30}px`, height: '30px' }}
+                        onClick={() => handleSlotClick(dia.fechaStrISO, h, m)}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, dia.fechaStrISO, h, m)}
+                      />
+                    ))
+                  )}
 
                   {/* Citas */}
                   {citasPorDia[dia.fechaStrISO]?.map(cita => {
