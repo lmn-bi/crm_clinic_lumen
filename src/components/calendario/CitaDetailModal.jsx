@@ -37,6 +37,7 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
       setNotasTemp(cita.notas || '')
       setIsEditingNotas(false)
       setErrorMsg('')
+      setLoading(false) // Fix: resetear loading al abrir/reabrir modal
       setShowFichaPaciente(false)
       setFichaPaciente(null)
       setIsEditing(false)
@@ -180,6 +181,25 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
     }
   }
 
+  // Verificación de solapamiento frontend
+  const checkOverlap = async (doctorId, inicio, fin, excludeCitaId = null) => {
+    const { data, error } = await supabase
+      .from('citas')
+      .select('id, inicio, fin, pacientes(nombre, apellidos)')
+      .eq('doctor_id', doctorId)
+      .neq('estado', 'cancelada')
+      .lt('inicio', fin.toISOString())
+      .gt('fin', inicio.toISOString())
+
+    if (error) return null // Si falla la consulta, dejar pasar
+
+    const conflictos = excludeCitaId
+      ? (data || []).filter(c => c.id !== excludeCitaId)
+      : (data || [])
+
+    return conflictos.length > 0 ? conflictos[0] : null
+  }
+
   const handleSaveEdicion = async (e) => {
     e.preventDefault()
 
@@ -194,6 +214,13 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
     try {
       const startDate = new Date(`${editData.fecha}T${editData.hora_inicio}:00`)
       const endDate = new Date(startDate.getTime() + editDuracion * 60000)
+
+      // Validación frontend de solapamiento
+      const conflicto = await checkOverlap(editData.doctor_id, startDate, endDate, cita.id)
+      if (conflicto) {
+        const hConf = new Date(conflicto.inicio).toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' })
+        throw new Error(`El doctor ya tiene una cita a las ${hConf} con ${conflicto.pacientes?.nombre} ${conflicto.pacientes?.apellidos}. Elige otro horario.`)
+      }
 
       const payload = {
         doctor_id: editData.doctor_id,
@@ -210,15 +237,11 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
         .update(payload)
         .eq('id', cita.id)
 
-      if (error) {
-        if (error.code === '23P01') {
-          throw new Error('Ese horario ya está ocupado para ese doctor')
-        }
-        throw error
-      }
+      if (error) throw error
 
       setIsEditing(false)
       if (onSaveSuccess) onSaveSuccess()
+      onClose()
     } catch (err) {
       setErrorMsg(`Error al guardar edición: ${err.message}`)
     } finally {

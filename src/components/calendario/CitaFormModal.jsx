@@ -129,6 +129,20 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
     }
   }
 
+  // Verificación de solapamiento frontend
+  const checkOverlap = async (doctorId, inicio, fin) => {
+    const { data, error } = await supabase
+      .from('citas')
+      .select('id, inicio, fin, pacientes(nombre, apellidos)')
+      .eq('doctor_id', doctorId)
+      .neq('estado', 'cancelada')
+      .lt('inicio', fin.toISOString())
+      .gt('fin', inicio.toISOString())
+
+    if (error) return null
+    return (data || []).length > 0 ? data[0] : null
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -140,16 +154,22 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
       }
 
       // Convertir fecha y hora local (Europa/Madrid implícito por el navegador) a UTC
-      // La entrada del usuario asume "Local Time" (que para este CRM es España)
       const localDateTimeString = `${formData.fecha}T${formData.hora_inicio}:00`
       const startDate = new Date(localDateTimeString)
       
       const endDate = new Date(startDate.getTime() + duracionMin * 60000)
 
+      // Validación frontend de solapamiento
+      const conflicto = await checkOverlap(formData.doctor_id, startDate, endDate)
+      if (conflicto) {
+        const hConf = new Date(conflicto.inicio).toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' })
+        throw new Error(`El doctor ya tiene una cita a las ${hConf} con ${conflicto.pacientes?.nombre} ${conflicto.pacientes?.apellidos}. Por favor, elige otro horario.`)
+      }
+
       const payload = {
         paciente_id: selectedPaciente.id,
         doctor_id: formData.doctor_id,
-        inicio: startDate.toISOString(), // Supabase guarda TIMESTAMPTZ en UTC
+        inicio: startDate.toISOString(),
         fin: endDate.toISOString(),
         tipo_tratamiento: formData.tipo_tratamiento,
         duracion_min: duracionMin,
@@ -162,12 +182,7 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
         .from('citas')
         .insert([payload])
 
-      if (error) {
-        if (error.code === '23P01') {
-          throw new Error('Este horario ya está ocupado para el doctor seleccionado. Por favor, elige otra hora.')
-        }
-        throw error
-      }
+      if (error) throw error
 
       onSaveSuccess()
       onClose()

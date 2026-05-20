@@ -75,6 +75,7 @@ export default function CalendarioMain() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedCita, setSelectedCita] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
   
   const [formFechaStr, setFormFechaStr] = useState('')
   const [formHoraStr, setFormHoraStr] = useState('')
@@ -121,26 +122,58 @@ export default function CalendarioMain() {
   // --- DRAG AND DROP ---
   const handleDragStart = (e, cita) => {
     e.dataTransfer.setData('citaId', cita.id)
+    e.dataTransfer.setData('doctorId', cita.doctor_id)
     e.dataTransfer.setData('duracionMin', cita.duracion_min || 30)
+    setIsDragging(true)
+  }
+
+  const handleDragEnd = () => {
+    setIsDragging(false)
   }
 
   const handleDragOver = (e) => {
     e.preventDefault() // Necesario para permitir soltar
   }
 
+  // Verificación de solapamiento frontend
+  const checkOverlap = async (doctorId, inicio, fin, excludeCitaId = null) => {
+    const { data, error } = await supabase
+      .from('citas')
+      .select('id, inicio, fin, pacientes(nombre, apellidos)')
+      .eq('doctor_id', doctorId)
+      .neq('estado', 'cancelada')
+      .lt('inicio', fin.toISOString())
+      .gt('fin', inicio.toISOString())
+
+    if (error) return null
+    const conflictos = excludeCitaId
+      ? (data || []).filter(c => c.id !== excludeCitaId)
+      : (data || [])
+    return conflictos.length > 0 ? conflictos[0] : null
+  }
+
   const handleDrop = async (e, fechaStrISO, hora, minuto = 0) => {
     e.preventDefault()
+    setIsDragging(false)
     const citaId = e.dataTransfer.getData('citaId')
+    const doctorId = e.dataTransfer.getData('doctorId')
     const duracionMin = parseInt(e.dataTransfer.getData('duracionMin'), 10)
     
     if (!citaId) return
 
     // Calcular la nueva fecha/hora de inicio
     const startDate = new Date(`${fechaStrISO}T${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}:00`)
-    // Asumir que la hora es en la zona horaria de España
     const endDate = new Date(startDate.getTime() + duracionMin * 60000)
 
     try {
+      // Validación frontend de solapamiento
+      const conflicto = await checkOverlap(doctorId, startDate, endDate, citaId)
+      if (conflicto) {
+        const hConf = new Date(conflicto.inicio).toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' })
+        alert(`No se puede mover aquí. El doctor ya tiene una cita a las ${hConf} con ${conflicto.pacientes?.nombre} ${conflicto.pacientes?.apellidos}.`)
+        return
+      }
+
       const { error } = await supabase
         .from('citas')
         .update({
@@ -150,13 +183,9 @@ export default function CalendarioMain() {
         .eq('id', citaId)
       
       if (error) {
-        if (error.code === '23P01') {
-          alert('Error: Ese horario ya está ocupado para el doctor asignado.')
-        } else {
-          alert('Error al mover la cita: ' + error.message)
-        }
+        alert('Error al mover la cita: ' + error.message)
       }
-      refetch() // Recargar para mostrar nueva posición
+      refetch()
     } catch (err) {
       console.error(err)
     }
@@ -328,8 +357,9 @@ export default function CalendarioMain() {
                         key={cita.id}
                         draggable={true}
                         onDragStart={(e) => handleDragStart(e, cita)}
+                        onDragEnd={handleDragEnd}
                         onClick={() => { setSelectedCita(cita); setIsDetailOpen(true); }}
-                        className="absolute left-1 right-1 rounded cursor-move overflow-hidden text-white opacity-90 hover:opacity-100 transition-opacity border-l-4 shadow-sm active:opacity-75"
+                        className={`absolute left-1 right-1 rounded cursor-move overflow-hidden text-white opacity-90 hover:opacity-100 transition-opacity border-l-4 shadow-sm active:opacity-75 ${isDragging ? 'pointer-events-none' : ''}`}
                         style={style}
                         title={`${cita.tipo_tratamiento} - ${cita.pacientes?.nombre} ${cita.pacientes?.apellidos}`}
                       >
