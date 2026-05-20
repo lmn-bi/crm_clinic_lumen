@@ -75,7 +75,6 @@ export default function CalendarioMain() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedCita, setSelectedCita] = useState(null)
-  const [isDragging, setIsDragging] = useState(false)
   
   const [formFechaStr, setFormFechaStr] = useState('')
   const [formHoraStr, setFormHoraStr] = useState('')
@@ -124,15 +123,12 @@ export default function CalendarioMain() {
     e.dataTransfer.setData('citaId', cita.id)
     e.dataTransfer.setData('doctorId', cita.doctor_id)
     e.dataTransfer.setData('duracionMin', cita.duracion_min || 30)
-    setIsDragging(true)
-  }
-
-  const handleDragEnd = () => {
-    setIsDragging(false)
+    e.dataTransfer.effectAllowed = 'move'
   }
 
   const handleDragOver = (e) => {
-    e.preventDefault() // Necesario para permitir soltar
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
   }
 
   // Verificación de solapamiento frontend
@@ -152,16 +148,25 @@ export default function CalendarioMain() {
     return conflictos.length > 0 ? conflictos[0] : null
   }
 
-  const handleDrop = async (e, fechaStrISO, hora, minuto = 0) => {
+  // Drop handler en la columna del día: calcula el slot de 15 min desde la posición Y del ratón
+  const handleColumnDrop = async (e, fechaStrISO) => {
     e.preventDefault()
-    setIsDragging(false)
     const citaId = e.dataTransfer.getData('citaId')
     const doctorId = e.dataTransfer.getData('doctorId')
     const duracionMin = parseInt(e.dataTransfer.getData('duracionMin'), 10)
     
     if (!citaId) return
 
-    // Calcular la nueva fecha/hora de inicio
+    // Calcular la posición Y relativa al contenedor de la columna
+    const containerRect = e.currentTarget.getBoundingClientRect()
+    const relativeY = e.clientY - containerRect.top
+    
+    // Cada slot de 15 min = 30px
+    const slotIndex = Math.max(0, Math.floor(relativeY / 30))
+    const totalMinutes = slotIndex * 15
+    const hora = Math.min(19, Math.floor(totalMinutes / 60) + 8) // 8 es la hora base
+    const minuto = totalMinutes % 60
+
     const startDate = new Date(`${fechaStrISO}T${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}:00`)
     const endDate = new Date(startDate.getTime() + duracionMin * 60000)
 
@@ -330,8 +335,13 @@ export default function CalendarioMain() {
                   <span className={`text-lg leading-tight ${dia.esHoy ? 'font-bold text-primary' : 'text-gray-900'}`}>{dia.fechaObj.getDate()}</span>
                 </div>
 
-                <div className={`relative flex-1 ${dia.esFinDeSemana ? 'bg-gray-100' : 'bg-white'}`} style={{ height: `${HORAS.length * 120}px` }}>
-                  {/* Slots de 15 minutos */}
+                <div
+                  className={`relative flex-1 ${dia.esFinDeSemana ? 'bg-gray-100' : 'bg-white'}`}
+                  style={{ height: `${HORAS.length * 120}px` }}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleColumnDrop(e, dia.fechaStrISO)}
+                >
+                  {/* Slots de 15 minutos (solo para click y líneas visuales) */}
                   {HORAS.flatMap((h, i) => 
                     [0, 15, 30, 45].map((m, mIdx) => (
                       <div
@@ -341,8 +351,6 @@ export default function CalendarioMain() {
                           ${dia.esFinDeSemana ? 'hover:bg-gray-200' : 'hover:bg-gray-50'}`}
                         style={{ top: `${i * 120 + mIdx * 30}px`, height: '30px' }}
                         onClick={() => handleSlotClick(dia.fechaStrISO, h, m)}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, dia.fechaStrISO, h, m)}
                       />
                     ))
                   )}
@@ -357,9 +365,8 @@ export default function CalendarioMain() {
                         key={cita.id}
                         draggable={true}
                         onDragStart={(e) => handleDragStart(e, cita)}
-                        onDragEnd={handleDragEnd}
                         onClick={() => { setSelectedCita(cita); setIsDetailOpen(true); }}
-                        className={`absolute left-1 right-1 rounded cursor-move overflow-hidden text-white opacity-90 hover:opacity-100 transition-opacity border-l-4 shadow-sm active:opacity-75 ${isDragging ? 'pointer-events-none' : ''}`}
+                        className="absolute left-1 right-1 rounded cursor-move overflow-hidden text-white opacity-90 hover:opacity-100 transition-opacity border-l-4 shadow-sm active:opacity-75"
                         style={style}
                         title={`${cita.tipo_tratamiento} - ${cita.pacientes?.nombre} ${cita.pacientes?.apellidos}`}
                       >
