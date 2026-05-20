@@ -363,7 +363,7 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
                       disabled={formData.tipo_tratamiento !== 'Otros'}
                       value={formData.tipo_tratamiento ? duracionMin : ''}
                       onChange={(e) => setDuracionMin(e.target.value)}
-                      min="5" step="5"
+                      min="15" step="15"
                       className={`block w-full mt-1 rounded-md shadow-sm sm:text-sm py-2 px-3 border ${formData.tipo_tratamiento === 'Otros' ? 'bg-white border-gray-300 focus:ring-primary focus:border-primary' : 'bg-gray-50 border-gray-300 text-gray-500'}`}
                     />
                   </div>

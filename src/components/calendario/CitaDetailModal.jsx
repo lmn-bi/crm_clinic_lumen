@@ -344,7 +344,7 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
                         disabled={editData.tipo_tratamiento !== 'Otros'}
                         value={editData.tipo_tratamiento ? editDuracion : ''}
                         onChange={(e) => setEditDuracion(e.target.value)}
-                        min="5" step="5"
+                        min="15" step="15"
                         className={`block w-full mt-1 rounded-md shadow-sm sm:text-sm py-2 px-3 border ${editData.tipo_tratamiento === 'Otros' ? 'bg-white border-gray-300 focus:ring-primary focus:border-primary' : 'bg-gray-50 border-gray-300 text-gray-500'}`}
                       />
                     </div>
