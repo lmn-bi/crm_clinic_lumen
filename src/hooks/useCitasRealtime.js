@@ -24,7 +24,7 @@ export default function useCitasRealtime(inicioSemana, finSemana, doctoresFiltro
         .select(`
           *,
           pacientes (nombre, apellidos),
-          doctores (nombre, apellidos, color_calendario)
+          doctores (nombre, apellidos, color_calendario, horario)
         `)
         .gte('inicio', inicioSemana.toISOString())
         .lte('inicio', finSemana.toISOString())
@@ -57,7 +57,7 @@ export default function useCitasRealtime(inicioSemana, finSemana, doctoresFiltro
         // Hacemos fetch manual de la nueva cita para traer los datos relacionados (paciente y doctor)
         const { data: newCita } = await supabase
           .from('citas')
-          .select('*, pacientes (nombre, apellidos), doctores (nombre, apellidos, color_calendario)')
+          .select('*, pacientes (nombre, apellidos), doctores (nombre, apellidos, color_calendario, horario)')
           .eq('id', newCitaId)
           .single()
 
@@ -83,7 +83,7 @@ export default function useCitasRealtime(inicioSemana, finSemana, doctoresFiltro
         // Fetch para relaciones
         const { data: updatedCita } = await supabase
           .from('citas')
-          .select('*, pacientes (nombre, apellidos), doctores (nombre, apellidos, color_calendario)')
+          .select('*, pacientes (nombre, apellidos), doctores (nombre, apellidos, color_calendario, horario)')
           .eq('id', updatedCitaId)
           .single()
 

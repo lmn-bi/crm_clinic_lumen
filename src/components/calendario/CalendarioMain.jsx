@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Phone } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabaseClient'
 import useCitasRealtime from '../../hooks/useCitasRealtime'
+import { validarHorarioDoctor, fetchHorarioDoctor, calcularZonasNoDisponibles } from '../../utils/horarioUtils'
 import CitaFormModal from './CitaFormModal'
 import CitaDetailModal from './CitaDetailModal'
 
@@ -43,7 +44,7 @@ export default function CalendarioMain() {
   useEffect(() => {
     if (perfil) {
       if (isAdmin) {
-        supabase.from('doctores').select('id, nombre, apellidos, color_calendario').eq('activo', true)
+        supabase.from('doctores').select('id, nombre, apellidos, color_calendario, horario').eq('activo', true)
           .then(({ data }) => setDoctores(data || []))
         setDoctoresFiltro([])
       } else {
@@ -164,13 +165,22 @@ export default function CalendarioMain() {
     // Cada slot de 15 min = 30px
     const slotIndex = Math.max(0, Math.floor(relativeY / 30))
     const totalMinutes = slotIndex * 15
-    const hora = Math.min(19, Math.floor(totalMinutes / 60) + 8) // 8 es la hora base
+    const hora = Math.min(19, Math.floor(totalMinutes / 60) + 8)
     const minuto = totalMinutes % 60
 
     const startDate = new Date(`${fechaStrISO}T${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}:00`)
     const endDate = new Date(startDate.getTime() + duracionMin * 60000)
 
     try {
+      // Validación de horario laboral del doctor (advertencia)
+      const horario = await fetchHorarioDoctor(doctorId)
+      const { valido, mensaje } = validarHorarioDoctor(horario, startDate, endDate)
+      if (!valido) {
+        if (!window.confirm(`⚠️ ${mensaje}\n\n¿Deseas colocar la cita aquí de todos modos?`)) {
+          return
+        }
+      }
+
       // Validación frontend de solapamiento
       const conflicto = await checkOverlap(doctorId, startDate, endDate, citaId)
       if (conflicto) {
@@ -354,6 +364,20 @@ export default function CalendarioMain() {
                       />
                     ))
                   )}
+
+                  {/* Overlay zonas no disponibles (solo cuando se filtra 1 doctor) */}
+                  {doctoresFiltro.length === 1 && (() => {
+                    const doctorFiltrado = doctores.find(d => d.id === doctoresFiltro[0])
+                    if (!doctorFiltrado?.horario) return null
+                    const zonas = calcularZonasNoDisponibles(doctorFiltrado.horario, dia.fechaObj.getDay(), 8, 20, 120)
+                    return zonas.map((zona, idx) => (
+                      <div
+                        key={`nodisp-${dia.fechaStrISO}-${idx}`}
+                        className="absolute w-full bg-gray-200 opacity-40 pointer-events-none z-[1]"
+                        style={{ top: `${zona.top}px`, height: `${zona.height}px` }}
+                      />
+                    ))
+                  })()}
 
                   {/* Citas */}
                   {citasPorDia[dia.fechaStrISO]?.map(cita => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { X, Calendar as CalendarIcon, Clock, User, Phone, Edit2, CheckCircle2, AlertCircle, Eye, Mail } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
+import { validarHorarioDoctor, fetchHorarioDoctor } from '../../utils/horarioUtils'
 
 export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }) {
   const { perfil } = useAuth()
@@ -214,6 +215,16 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
     try {
       const startDate = new Date(`${editData.fecha}T${editData.hora_inicio}:00`)
       const endDate = new Date(startDate.getTime() + editDuracion * 60000)
+
+      // Validación de horario laboral del doctor (advertencia)
+      const horario = await fetchHorarioDoctor(editData.doctor_id)
+      const { valido, mensaje } = validarHorarioDoctor(horario, startDate, endDate)
+      if (!valido) {
+        if (!window.confirm(`⚠️ ${mensaje}\n\n¿Deseas guardar la cita de todos modos?`)) {
+          setLoading(false)
+          return
+        }
+      }
 
       // Validación frontend de solapamiento
       const conflicto = await checkOverlap(editData.doctor_id, startDate, endDate, cita.id)

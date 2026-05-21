@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { X, Search } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
+import { validarHorarioDoctor, fetchHorarioDoctor } from '../../utils/horarioUtils'
 
 export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaInicio, horaInicio }) {
   // Datos maestros
@@ -158,6 +159,16 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
       const startDate = new Date(localDateTimeString)
       
       const endDate = new Date(startDate.getTime() + duracionMin * 60000)
+
+      // Validación de horario laboral del doctor (advertencia)
+      const horario = await fetchHorarioDoctor(formData.doctor_id)
+      const { valido, mensaje } = validarHorarioDoctor(horario, startDate, endDate)
+      if (!valido) {
+        if (!window.confirm(`⚠️ ${mensaje}\n\n¿Deseas agendar la cita de todos modos?`)) {
+          setLoading(false)
+          return
+        }
+      }
 
       // Validación frontend de solapamiento
       const conflicto = await checkOverlap(formData.doctor_id, startDate, endDate)
