@@ -88,7 +88,9 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
             hora_inicio: horaLocal,
             tipo_tratamiento: cita.tipo_tratamiento,
             estado: cita.estado,
-            notas: cita.notas || ''
+            notas: cita.notas || '',
+            presupuesto: cita.presupuesto || '',
+            costo_tratamiento: cita.costo_tratamiento || ''
           })
           setEditDuracion(cita.duracion_min || 30)
         } catch (err) {
@@ -240,7 +242,9 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
         tipo_tratamiento: editData.tipo_tratamiento,
         duracion_min: editDuracion,
         estado: editData.estado,
-        notas: editData.notas || null
+        notas: editData.notas || null,
+        presupuesto: editData.presupuesto ? parseFloat(editData.presupuesto) : null,
+        costo_tratamiento: editData.costo_tratamiento ? parseFloat(editData.costo_tratamiento) : null
       }
 
       const { error } = await supabase
@@ -357,6 +361,23 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
                         onChange={(e) => setEditDuracion(e.target.value)}
                         min="15" step="15"
                         className={`block w-full mt-1 rounded-md shadow-sm sm:text-sm py-2 px-3 border ${editData.tipo_tratamiento === 'Otros' ? 'bg-white border-gray-300 focus:ring-primary focus:border-primary' : 'bg-gray-50 border-gray-300 text-gray-500'}`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Presupuesto (€)</label>
+                      <input
+                        type="number" name="presupuesto" step="0.01" min="0" value={editData.presupuesto || ''} onChange={handleEditChange} placeholder="Ej: 150.00"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm p-2 border"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Costo Real (€)</label>
+                      <input
+                        type="number" name="costo_tratamiento" step="0.01" min="0" value={editData.costo_tratamiento || ''} onChange={handleEditChange} placeholder="Ej: 120.00"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm p-2 border"
                       />
                     </div>
                   </div>
@@ -489,6 +510,24 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
                       )}
                     </div>
                   </div>
+
+                  {/* Economía */}
+                  {(cita.presupuesto != null || cita.costo_tratamiento != null) && (
+                    <div className="grid grid-cols-2 gap-4">
+                      {cita.presupuesto != null && (
+                        <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg">
+                          <div className="text-sm font-medium text-blue-800 mb-1">Presupuesto</div>
+                          <div className="text-lg font-bold text-blue-900">{cita.presupuesto.toFixed(2)} €</div>
+                        </div>
+                      )}
+                      {cita.costo_tratamiento != null && (
+                        <div className="bg-green-50 border border-green-100 p-3 rounded-lg">
+                          <div className="text-sm font-medium text-green-800 mb-1">Costo Real</div>
+                          <div className="text-lg font-bold text-green-900">{cita.costo_tratamiento.toFixed(2)} €</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Notas */}
                   <div>

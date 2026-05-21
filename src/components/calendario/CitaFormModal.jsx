@@ -22,7 +22,8 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
     hora_inicio: '',
     tipo_tratamiento: '',
     estado: 'confirmada',
-    notas: ''
+    notas: '',
+    presupuesto: ''
   })
   
   // Derivado
@@ -51,7 +52,8 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
         hora_inicio: horaInicio || '09:00',
         tipo_tratamiento: '',
         estado: 'confirmada',
-        notas: ''
+        notas: '',
+        presupuesto: ''
       })
       setPacienteSearch('')
       setSelectedPaciente(null)
@@ -186,7 +188,8 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
         duracion_min: duracionMin,
         estado: formData.estado,
         origen: 'web',
-        notas: formData.notas || null
+        notas: formData.notas || null,
+        presupuesto: formData.presupuesto ? parseFloat(formData.presupuesto) : null
       }
 
       const { error } = await supabase
@@ -376,6 +379,18 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
                       onChange={(e) => setDuracionMin(e.target.value)}
                       min="15" step="15"
                       className={`block w-full mt-1 rounded-md shadow-sm sm:text-sm py-2 px-3 border ${formData.tipo_tratamiento === 'Otros' ? 'bg-white border-gray-300 focus:ring-primary focus:border-primary' : 'bg-gray-50 border-gray-300 text-gray-500'}`}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* PRESUPUESTO */}
+                  <div>
+                    <label htmlFor="presupuesto" className="block text-sm font-medium text-gray-700">Presupuesto (€)</label>
+                    <input
+                      type="number" id="presupuesto" name="presupuesto" step="0.01" min="0"
+                      value={formData.presupuesto} onChange={handleChange} placeholder="Ej: 150.00"
+                      className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm py-2 px-3 border"
                     />
                   </div>
                 </div>
