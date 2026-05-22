@@ -269,6 +269,15 @@ export default function DashboardPage() {
             el.style.wordBreak = 'break-word'
           })
 
+          // Fix Recharts active dots / dots causing giant circles in PDF by removing all SVG circles in the cloned document
+          // We preserve circle elements inside Lucide icons (which are nested within <svg class="lucide">)
+          const allCircles = clonedDoc.querySelectorAll('circle')
+          allCircles.forEach((el) => {
+            if (!el.closest('svg.lucide')) {
+              el.remove()
+            }
+          })
+
           // 4. Resolver el colapso de tamaño de Recharts ResponsiveContainers en el iframe clonado
           const clonedContainers = clonedDoc.querySelectorAll('.recharts-responsive-container')
           clonedContainers.forEach((clone) => {

@@ -108,29 +108,6 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 /**
- * Leyenda personalizada para el gráfico de ingresos mensuales.
- */
-const renderCustomLegend = (props) => {
-  const { payload } = props
-  if (!payload) return null
-
-  return (
-    <div className="flex justify-center items-center gap-6 mt-4 select-none">
-      {payload.map((entry, index) => (
-        <div key={`item-${index}`} className="flex items-center gap-2 px-3 py-1 rounded-xl bg-gray-50/50 hover:bg-gray-50 border border-gray-100 transition-colors">
-          <svg width="10" height="10" viewBox="0 0 10 10" className="shrink-0">
-            <circle cx="5" cy="5" r="4.5" fill={entry.color} stroke="#ffffff" strokeWidth="1" />
-          </svg>
-          <span className="text-xs font-bold text-gray-600">
-            {entry.value}
-          </span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-/**
  * Gráfico de Área comparativo entre ingresos Cobrados e ingresos Presupuestados.
  */
 export default function GraficoIngresosMensuales({ citasPeriodo = [] }) {
@@ -153,70 +130,82 @@ export default function GraficoIngresosMensuales({ citasPeriodo = [] }) {
           <p className="text-3xs text-gray-400">Prueba ampliando el rango de fechas de tu consulta.</p>
         </div>
       ) : (
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={chartData}
-              margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
-            >
-              <defs>
-                {/* Gradiente para Presupuestado (Azul) */}
-                <linearGradient id="colorPresupuestado" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0}/>
-                </linearGradient>
-                {/* Gradiente para Cobrado (Verde) */}
-                <linearGradient id="colorCobrado" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.25}/>
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0.0}/>
-                </linearGradient>
-              </defs>
-              
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-              
-              <XAxis 
-                dataKey="name" 
-                tick={{ fontSize: 10, fill: '#6B7280', fontWeight: 500 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              
-              <YAxis 
-                tickFormatter={formatEjeY}
-                tick={{ fontSize: 10, fill: '#6B7280', fontWeight: 500 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              
-              <Tooltip content={<CustomTooltip />} />
-              
-              <Legend content={renderCustomLegend} />
-              
-              {/* Presupuestado: Área azul */}
-              <Area
-                type="monotone"
-                dataKey="Presupuestado"
-                stroke="#3B82F6"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorPresupuestado)"
-                name="Presupuestado"
-                activeDot={{ r: 5 }}
-              />
-              
-              {/* Cobrado: Área verde */}
-              <Area
-                type="monotone"
-                dataKey="Cobrado"
-                stroke="#10B981"
-                strokeWidth={2.5}
-                fillOpacity={1}
-                fill="url(#colorCobrado)"
-                name="Cobrado"
-                activeDot={{ r: 6 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="h-[300px] w-full flex flex-col justify-between">
+          <div className="h-[255px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={chartData}
+                margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+              >
+                <defs>
+                  {/* Gradiente para Presupuestado (Azul) */}
+                  <linearGradient id="colorPresupuestado" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0}/>
+                  </linearGradient>
+                  {/* Gradiente para Cobrado (Verde) */}
+                  <linearGradient id="colorCobrado" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0.0}/>
+                  </linearGradient>
+                </defs>
+                
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fontSize: 10, fill: '#6B7280', fontWeight: 500 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                
+                <YAxis 
+                  tickFormatter={formatEjeY}
+                  tick={{ fontSize: 10, fill: '#6B7280', fontWeight: 500 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                
+                <Tooltip content={<CustomTooltip />} />
+                
+                {/* Presupuestado: Área azul */}
+                <Area
+                  type="monotone"
+                  dataKey="Presupuestado"
+                  stroke="#3B82F6"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorPresupuestado)"
+                  name="Presupuestado"
+                  activeDot={{ r: 5 }}
+                />
+                
+                {/* Cobrado: Área verde */}
+                <Area
+                  type="monotone"
+                  dataKey="Cobrado"
+                  stroke="#10B981"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorCobrado)"
+                  name="Cobrado"
+                  activeDot={{ r: 6 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Leyenda premium externa compatible con PDF y libre de truncamiento */}
+          <div className="flex justify-center items-center gap-6 mt-2 select-none">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-gray-50/50 hover:bg-gray-50 border border-gray-100 transition-colors">
+              <span className="w-2.5 h-2.5 rounded-full inline-block bg-[#10B981] border border-white shadow-xs shrink-0" />
+              <span className="text-xs font-bold text-gray-600">Cobrado</span>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-gray-50/50 hover:bg-gray-50 border border-gray-100 transition-colors">
+              <span className="w-2.5 h-2.5 rounded-full inline-block bg-[#3B82F6] border border-white shadow-xs shrink-0" />
+              <span className="text-xs font-bold text-gray-600">Presupuestado</span>
+            </div>
+          </div>
         </div>
       )}
     </div>

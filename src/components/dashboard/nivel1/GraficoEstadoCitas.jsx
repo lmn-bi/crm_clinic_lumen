@@ -136,9 +136,10 @@ export default function GraficoEstadoCitas({ citasPeriodo = [] }) {
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <svg width="12" height="12" viewBox="0 0 12 12" className="shrink-0">
-                    <circle cx="6" cy="6" r="5" fill={item.color} stroke="#ffffff" strokeWidth="1" />
-                  </svg>
+                  <span 
+                    className="w-2.5 h-2.5 rounded-full inline-block shrink-0 border border-white shadow-xs" 
+                    style={{ backgroundColor: item.color }}
+                  />
                   <span className="text-xs font-semibold text-gray-700 truncate">{item.name}</span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 pl-2">
