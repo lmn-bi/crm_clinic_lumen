@@ -108,6 +108,29 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 /**
+ * Leyenda personalizada para el gráfico de ingresos mensuales.
+ */
+const renderCustomLegend = (props) => {
+  const { payload } = props
+  if (!payload) return null
+
+  return (
+    <div className="flex justify-center items-center gap-6 mt-4 select-none">
+      {payload.map((entry, index) => (
+        <div key={`item-${index}`} className="flex items-center gap-2 px-3 py-1 rounded-xl bg-gray-50/50 hover:bg-gray-50 border border-gray-100 transition-colors">
+          <svg width="10" height="10" viewBox="0 0 10 10" className="shrink-0">
+            <circle cx="5" cy="5" r="4.5" fill={entry.color} stroke="#ffffff" strokeWidth="1" />
+          </svg>
+          <span className="text-xs font-bold text-gray-600">
+            {entry.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/**
  * Gráfico de Área comparativo entre ingresos Cobrados e ingresos Presupuestados.
  */
 export default function GraficoIngresosMensuales({ citasPeriodo = [] }) {
@@ -167,13 +190,7 @@ export default function GraficoIngresosMensuales({ citasPeriodo = [] }) {
               
               <Tooltip content={<CustomTooltip />} />
               
-              <Legend 
-                verticalAlign="bottom" 
-                height={36} 
-                iconType="circle"
-                iconSize={8}
-                wrapperStyle={{ fontSize: '11px', fontWeight: 600, color: '#4B5563', paddingTop: '15px' }}
-              />
+              <Legend content={renderCustomLegend} />
               
               {/* Presupuestado: Área azul */}
               <Area
