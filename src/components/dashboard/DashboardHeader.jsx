@@ -12,6 +12,7 @@ import {
   FileText
 } from 'lucide-react'
 import { DASHBOARD_CONFIG } from '../../config/dashboardConfig'
+import MultiSelectDropdown from './MultiSelectDropdown'
 
 /**
  * Convierte un objeto Date a formato "YYYY-MM" para inputs tipo month.
@@ -43,12 +44,12 @@ export default function DashboardHeader({
   fechaFin,
   onFechaInicioChange,
   onFechaFinChange,
-  selectedDoctor,
-  onDoctorChange,
-  selectedTreatment,
-  onTreatmentChange,
-  selectedOrigin,
-  onOriginChange,
+  selectedDoctors = [],
+  onDoctorsChange,
+  selectedTreatments = [],
+  onTreatmentsChange,
+  selectedOrigins = [],
+  onOriginsChange,
   doctorsList = [],
   treatmentsList = [],
   pdfOrientation,
@@ -74,20 +75,62 @@ export default function DashboardHeader({
     onFechaFinChange(new Date(year, month, 0, 23, 59, 59, 999))
   }
 
-  const obtenerNombreDoctor = () => {
-    if (selectedDoctor === 'todos') return 'Todos los doctores'
-    const doc = doctorsList.find((d) => String(d.id) === String(selectedDoctor))
-    return doc ? doc.nombreCompleto : `Doctor #${selectedDoctor}`
-  }
-
-  const obtenerNombreOrigen = () => {
-    switch (selectedOrigin) {
-      case 'todos': return 'Todos los orígenes'
+  // Mapear claves a nombres para la visualización
+  const getOrigenLabel = (key) => {
+    switch (key) {
       case 'web': return 'Web (Staff)'
       case 'telefono': return 'Agente de Voz'
       case 'manual': return 'Manual'
-      default: return selectedOrigin
+      default: return key
     }
+  }
+
+  const doctorOptions = doctorsList.map(doc => ({ id: String(doc.id), label: doc.nombreCompleto }))
+  const treatmentOptions = treatmentsList.map(treat => ({ id: treat, label: treat }))
+  const originOptions = [
+    { id: 'web', label: 'Web (Staff)' },
+    { id: 'telefono', label: 'Agente de Voz' },
+    { id: 'manual', label: 'Manual' }
+  ]
+
+  const isDocAll = selectedDoctors.includes('todos') || selectedDoctors.length === 0 || selectedDoctors.length === doctorsList.length
+  const isTreatAll = selectedTreatments.includes('todos') || selectedTreatments.length === 0 || selectedTreatments.length === treatmentsList.length
+  const isOrigAll = selectedOrigins.includes('todos') || selectedOrigins.length === 0 || selectedOrigins.length === 3
+
+  const doctorSelectedList = isDocAll 
+    ? ['Todos los doctores'] 
+    : selectedDoctors.map(id => {
+        const doc = doctorsList.find((d) => String(d.id) === String(id))
+        return doc ? doc.nombreCompleto : `Doctor #${id}`
+      })
+
+  const treatmentSelectedList = isTreatAll 
+    ? ['Todos los tratamientos'] 
+    : selectedTreatments
+
+  const originSelectedList = isOrigAll 
+    ? ['Todos los orígenes'] 
+    : selectedOrigins.map(getOrigenLabel)
+
+  // Renderizador genérico premium de filtros para el cuadro gris de exportación (se estira hacia abajo de forma dinámica)
+  const renderExportFilterBox = (titulo, items = [], isAll = false) => {
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider mb-1">{titulo}</span>
+        {isAll ? (
+          <span className="text-gray-800 font-extrabold text-xs">{items[0]}</span>
+        ) : (
+          <div className="flex flex-col gap-1 mt-0.5 pr-1">
+            {items.map((item, idx) => (
+              <div key={idx} className="flex items-start gap-1.5 py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 mt-1.5" />
+                <span className="text-gray-800 font-extrabold text-xs leading-normal break-words">{item}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -146,28 +189,19 @@ export default function DashboardHeader({
       {/* Divisor */}
       <div className="h-px bg-gray-100 my-4"></div>
 
-      {/* RESUMEN DE PARÁMETROS PARA EXPORTACIÓN (Visible solo en el PDF del Dashboard) */}
+      {/* RESUMEN DE PARÁMETROS PARA EXPORTACIÓN (Visible solo en el PDF del Dashboard - Se estira verticalmente con listas de múltiples filtros) */}
       <div className="hidden only-export mt-1 mb-3 bg-gray-50 border border-gray-150 rounded-2xl p-4.5" data-display="block">
         <div className="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest mb-3">
           Parámetros y Filtros del Reporte
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 text-xs font-semibold text-gray-700">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 items-start text-xs font-semibold text-gray-700">
           <div>
             <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider mb-1">Período</span>
-            <span className="text-gray-800 font-extrabold">{formatPeriodoLabel(fechaInicio, fechaFin)}</span>
+            <span className="text-gray-800 font-extrabold text-xs">{formatPeriodoLabel(fechaInicio, fechaFin)}</span>
           </div>
-          <div>
-            <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider mb-1">Doctor</span>
-            <span className="text-gray-800 font-extrabold">{obtenerNombreDoctor()}</span>
-          </div>
-          <div>
-            <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider mb-1">Tratamiento</span>
-            <span className="text-gray-800 font-extrabold">{selectedTreatment === 'todos' ? 'Todos los tratamientos' : selectedTreatment}</span>
-          </div>
-          <div>
-            <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider mb-1">Procedencia</span>
-            <span className="text-gray-800 font-extrabold">{obtenerNombreOrigen()}</span>
-          </div>
+          {renderExportFilterBox('Doctor(es)', doctorSelectedList, isDocAll)}
+          {renderExportFilterBox('Tratamiento(s)', treatmentSelectedList, isTreatAll)}
+          {renderExportFilterBox('Procedencia(s)', originSelectedList, isOrigAll)}
         </div>
       </div>
 
@@ -243,7 +277,7 @@ export default function DashboardHeader({
 
       </div>
 
-      {/* PANEL DE FILTROS AVANZADOS (Se desliza suavemente) */}
+      {/* PANEL DE FILTROS AVANZADOS (Se desliza suavemente - Rediseñado con dropdowns Multi-Select premium) */}
       {showFilters && (
         <div className="mt-5 p-4 bg-gray-50 border border-gray-100 rounded-2xl grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in no-export">
           
@@ -253,18 +287,14 @@ export default function DashboardHeader({
               <User className="w-3.5 h-3.5 text-blue-550" />
               <span>Doctor</span>
             </label>
-            <select
-              value={selectedDoctor}
-              onChange={(e) => onDoctorChange(e.target.value)}
-              className="w-full px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 cursor-pointer shadow-xs"
-            >
-              <option value="todos">Todos los doctores</option>
-              {doctorsList.map((doc) => (
-                <option key={doc.id} value={doc.id}>
-                  {doc.nombreCompleto}
-                </option>
-              ))}
-            </select>
+            <MultiSelectDropdown
+              label="Doctor"
+              options={doctorOptions}
+              selected={selectedDoctors}
+              onChange={onDoctorsChange}
+              placeholder="Todos los doctores"
+              icon={User}
+            />
           </div>
 
           {/* Filtro Tratamiento */}
@@ -273,18 +303,14 @@ export default function DashboardHeader({
               <Activity className="w-3.5 h-3.5 text-blue-550" />
               <span>Tratamiento</span>
             </label>
-            <select
-              value={selectedTreatment}
-              onChange={(e) => onTreatmentChange(e.target.value)}
-              className="w-full px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 cursor-pointer shadow-xs"
-            >
-              <option value="todos">Todos los tratamientos</option>
-              {treatmentsList.map((treat) => (
-                <option key={treat} value={treat}>
-                  {treat}
-                </option>
-              ))}
-            </select>
+            <MultiSelectDropdown
+              label="Tratamiento"
+              options={treatmentOptions}
+              selected={selectedTreatments}
+              onChange={onTreatmentsChange}
+              placeholder="Todos los tratamientos"
+              icon={Activity}
+            />
           </div>
 
           {/* Filtro Origen */}
@@ -293,16 +319,14 @@ export default function DashboardHeader({
               <Compass className="w-3.5 h-3.5 text-blue-550" />
               <span>Procedencia</span>
             </label>
-            <select
-              value={selectedOrigin}
-              onChange={(e) => onOriginChange(e.target.value)}
-              className="w-full px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 cursor-pointer shadow-xs"
-            >
-              <option value="todos">Todos los orígenes</option>
-              <option value="web">Web (Staff)</option>
-              <option value="telefono">Agente de Voz</option>
-              <option value="manual">Manual</option>
-            </select>
+            <MultiSelectDropdown
+              label="Procedencia"
+              options={originOptions}
+              selected={selectedOrigins}
+              onChange={onOriginsChange}
+              placeholder="Todos los orígenes"
+              icon={Compass}
+            />
           </div>
 
         </div>

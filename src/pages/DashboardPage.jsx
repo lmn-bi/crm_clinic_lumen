@@ -50,9 +50,9 @@ export default function DashboardPage() {
   }
 
   // 2. ESTADO DE FILTROS MAESTROS (En memoria - Frontend)
-  const [selectedDoctor, setSelectedDoctor] = useState('todos')
-  const [selectedTreatment, setSelectedTreatment] = useState('todos')
-  const [selectedOrigin, setSelectedOrigin] = useState('todos')
+  const [selectedDoctors, setSelectedDoctors] = useState(['todos'])
+  const [selectedTreatments, setSelectedTreatments] = useState(['todos'])
+  const [selectedOrigins, setSelectedOrigins] = useState(['todos'])
 
   // 3. CONFIGURACIÓN DEL EXPORTADOR DE PDF
   const [pdfOrientation, setPdfOrientation] = useState('landscape') // 'landscape' | 'portrait'
@@ -147,9 +147,9 @@ export default function DashboardPage() {
     setFechaFin(fin)
     setActivePreset(preset)
     // Reseteamos filtros en memoria al cambiar el período general
-    setSelectedDoctor('todos')
-    setSelectedTreatment('todos')
-    setSelectedOrigin('todos')
+    setSelectedDoctors(['todos'])
+    setSelectedTreatments(['todos'])
+    setSelectedOrigins(['todos'])
     setLastUpdated(new Date())
   }
 
@@ -157,17 +157,20 @@ export default function DashboardPage() {
   const filteredCitas = useMemo(() => {
     return citasPeriodo.filter((cita) => {
       // Filtro de doctor
-      const matchDoc = selectedDoctor === 'todos' || String(cita.doctor_id) === String(selectedDoctor)
+      const isDocAll = selectedDoctors.includes('todos') || selectedDoctors.length === 0 || selectedDoctors.length === doctorsList.length
+      const matchDoc = isDocAll || selectedDoctors.map(String).includes(String(cita.doctor_id))
       
       // Filtro de tratamiento
-      const matchTreat = selectedTreatment === 'todos' || cita.tipo_tratamiento === selectedTreatment
+      const isTreatAll = selectedTreatments.includes('todos') || selectedTreatments.length === 0 || selectedTreatments.length === treatmentsList.length
+      const matchTreat = isTreatAll || selectedTreatments.includes(cita.tipo_tratamiento)
       
       // Filtro de origen
-      const matchOrig = selectedOrigin === 'todos' || (cita.origen || 'manual') === selectedOrigin
+      const isOrigAll = selectedOrigins.includes('todos') || selectedOrigins.length === 0 || selectedOrigins.length === 3
+      const matchOrig = isOrigAll || selectedOrigins.includes(cita.origen || 'manual')
 
       return matchDoc && matchTreat && matchOrig
     })
-  }, [citasPeriodo, selectedDoctor, selectedTreatment, selectedOrigin])
+  }, [citasPeriodo, selectedDoctors, selectedTreatments, selectedOrigins, doctorsList.length, treatmentsList.length])
 
   // Helper para agrupar y calcular doctores para exportación Excel
   const procesarDoctores = (citas) => {
@@ -495,12 +498,12 @@ export default function DashboardPage() {
         fechaFin={fechaFin}
         onFechaInicioChange={handleFechaInicioChange}
         onFechaFinChange={handleFechaFinChange}
-        selectedDoctor={selectedDoctor}
-        onDoctorChange={setSelectedDoctor}
-        selectedTreatment={selectedTreatment}
-        onTreatmentChange={setSelectedTreatment}
-        selectedOrigin={selectedOrigin}
-        onOriginChange={setSelectedOrigin}
+        selectedDoctors={selectedDoctors}
+        onDoctorsChange={setSelectedDoctors}
+        selectedTreatments={selectedTreatments}
+        onTreatmentsChange={setSelectedTreatments}
+        selectedOrigins={selectedOrigins}
+        onOriginsChange={setSelectedOrigins}
         doctorsList={doctorsList}
         treatmentsList={treatmentsList}
         pdfOrientation={pdfOrientation}
