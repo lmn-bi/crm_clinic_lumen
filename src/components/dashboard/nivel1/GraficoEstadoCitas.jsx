@@ -50,12 +50,14 @@ const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
-      <div className="bg-white border border-gray-150 rounded-xl p-2.5 shadow-lg">
+      <div 
+        className="bg-white border border-gray-150 rounded-xl p-2.5 shadow-lg select-none"
+        style={{ backgroundColor: '#ffffff', opacity: 1 }}
+      >
         <div className="flex items-center gap-1.5 mb-1 text-xs font-semibold text-gray-700">
-          <span 
-            className="w-2.5 h-2.5 rounded-full inline-block" 
-            style={{ backgroundColor: data.color }}
-          />
+          <svg width="10" height="10" viewBox="0 0 10 10" className="shrink-0">
+            <circle cx="5" cy="5" r="4.5" fill={data.color} />
+          </svg>
           {data.name}
         </div>
         <p className="text-xs font-bold text-gray-900">
@@ -111,7 +113,11 @@ export default function GraficoEstadoCitas({ citasPeriodo = [] }) {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip 
+                  content={<CustomTooltip />} 
+                  wrapperStyle={{ zIndex: 1000, outline: 'none' }}
+                  cursor={false}
+                />
               </PieChart>
             </ResponsiveContainer>
             
@@ -132,10 +138,9 @@ export default function GraficoEstadoCitas({ citasPeriodo = [] }) {
                 }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <span 
-                    className="w-3 h-3 rounded-full shrink-0 border border-white shadow-3xs" 
-                    style={{ backgroundColor: item.color }}
-                  />
+                  <svg width="12" height="12" viewBox="0 0 12 12" className="shrink-0">
+                    <circle cx="6" cy="6" r="5" fill={item.color} stroke="#ffffff" strokeWidth="1" />
+                  </svg>
                   <span className="text-xs font-semibold text-gray-700 truncate">{item.name}</span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 pl-2">

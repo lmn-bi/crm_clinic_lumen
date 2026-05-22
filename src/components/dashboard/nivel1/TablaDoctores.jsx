@@ -112,10 +112,9 @@ export default function TablaDoctores({ citasPeriodo = [] }) {
                   <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors text-xs font-medium text-gray-700">
                     {/* Doctor Info */}
                     <td className="py-3.5 px-4 flex items-center gap-2">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full border border-white shadow-3xs shrink-0"
-                        style={{ backgroundColor: doc.color }}
-                      />
+                      <svg width="10" height="10" viewBox="0 0 10 10" className="shrink-0">
+                        <circle cx="5" cy="5" r="4" fill={doc.color} stroke="#ffffff" strokeWidth="1" />
+                      </svg>
                       <span className="font-semibold text-gray-800">{doc.nombre}</span>
                     </td>
                     {/* Citas Totales */}

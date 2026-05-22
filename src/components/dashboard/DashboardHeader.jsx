@@ -23,6 +23,17 @@ const toMonthString = (date) => {
   return `${yyyy}-${mm}`
 }
 
+const formatMesAno = (date) => {
+  if (!date) return ''
+  const capitalizar = (str) => str.charAt(0).toUpperCase() + str.slice(1)
+  return capitalizar(date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }))
+}
+
+const formatPeriodoLabel = (inicio, fin) => {
+  if (!inicio || !fin) return '-'
+  return `${formatMesAno(inicio)} a ${formatMesAno(fin)}`
+}
+
 /**
  * Componente que representa la cabecera del Dashboard.
  * Rediseñado con un control segmentado estético, botones unificados, y filtro avanzado alineado a la derecha.
@@ -63,6 +74,22 @@ export default function DashboardHeader({
     onFechaFinChange(new Date(year, month, 0, 23, 59, 59, 999))
   }
 
+  const obtenerNombreDoctor = () => {
+    if (selectedDoctor === 'todos') return 'Todos los doctores'
+    const doc = doctorsList.find((d) => String(d.id) === String(selectedDoctor))
+    return doc ? doc.nombreCompleto : `Doctor #${selectedDoctor}`
+  }
+
+  const obtenerNombreOrigen = () => {
+    switch (selectedOrigin) {
+      case 'todos': return 'Todos los orígenes'
+      case 'web': return 'Web (Staff)'
+      case 'telefono': return 'Agente de Voz'
+      case 'manual': return 'Manual'
+      default: return selectedOrigin
+    }
+  }
+
   return (
     <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm mb-6 transition-all duration-300">
       
@@ -70,7 +97,7 @@ export default function DashboardHeader({
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         {/* Título Principal */}
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl shadow-xs">
+          <div className="p-3 bg-blue-55 text-blue-600 rounded-2xl shadow-xs">
             <LayoutDashboard className="w-7 h-7" />
           </div>
           <div>
@@ -119,11 +146,36 @@ export default function DashboardHeader({
       {/* Divisor */}
       <div className="h-px bg-gray-100 my-4"></div>
 
+      {/* RESUMEN DE PARÁMETROS PARA EXPORTACIÓN (Visible solo en el PDF del Dashboard) */}
+      <div className="hidden only-export mt-1 mb-3 bg-gray-50 border border-gray-150 rounded-2xl p-4.5" data-display="block">
+        <div className="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest mb-3">
+          Parámetros y Filtros del Reporte
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 text-xs font-semibold text-gray-700">
+          <div>
+            <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider mb-1">Período</span>
+            <span className="text-gray-800 font-extrabold">{formatPeriodoLabel(fechaInicio, fechaFin)}</span>
+          </div>
+          <div>
+            <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider mb-1">Doctor</span>
+            <span className="text-gray-800 font-extrabold">{obtenerNombreDoctor()}</span>
+          </div>
+          <div>
+            <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider mb-1">Tratamiento</span>
+            <span className="text-gray-800 font-extrabold">{selectedTreatment === 'todos' ? 'Todos los tratamientos' : selectedTreatment}</span>
+          </div>
+          <div>
+            <span className="text-gray-400 block text-[9px] uppercase font-bold tracking-wider mb-1">Procedencia</span>
+            <span className="text-gray-800 font-extrabold">{obtenerNombreOrigen()}</span>
+          </div>
+        </div>
+      </div>
+
       {/* FILA 2: CONTROLES DE FILTROS (DATES, SEGMENTED PRESETS, ADVANCED TOGGLE) */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
         
         {/* Lado Izquierdo: Rango de Fechas */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 no-export">
           <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
             <Calendar className="w-4 h-4 text-blue-500" />
             <span className="hidden sm:inline">Período:</span>

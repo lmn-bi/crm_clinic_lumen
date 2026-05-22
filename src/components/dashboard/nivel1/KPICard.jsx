@@ -71,21 +71,26 @@ export default function KPICard({
         </p>
 
         {tendencia && (
-          <div
-            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-lg text-2xs font-black ${
-              tendencia.positivo
-                ? 'text-emerald-700 bg-emerald-50 border border-emerald-100'
-                : 'text-rose-700 bg-rose-50 border border-rose-100'
-            }`}
-            title={tendencia.etiqueta}
-          >
-            {tendencia.valor >= 0 ? (
-              <ArrowUpRight className="w-3.5 h-3.5 stroke-[3px]" />
-            ) : (
-              <ArrowDownRight className="w-3.5 h-3.5 stroke-[3px]" />
-            )}
-            <span>
-              {Math.abs(tendencia.valor).toFixed(1).replace('.', ',')}%
+          <div className="flex flex-col items-end shrink-0 select-none">
+            <div
+              className={`flex items-center gap-0.5 px-2 py-0.5 rounded-lg text-2xs font-black ${
+                tendencia.positivo
+                  ? 'text-emerald-700 bg-emerald-50 border border-emerald-100'
+                  : 'text-rose-700 bg-rose-50 border border-rose-100'
+              }`}
+              title={tendencia.etiqueta}
+            >
+              {tendencia.valor >= 0 ? (
+                <ArrowUpRight className="w-3.5 h-3.5 stroke-[3px]" />
+              ) : (
+                <ArrowDownRight className="w-3.5 h-3.5 stroke-[3px]" />
+              )}
+              <span>
+                {Math.abs(tendencia.valor).toFixed(1).replace('.', ',')}%
+              </span>
+            </div>
+            <span className="text-[10px] text-gray-400 font-semibold mt-1">
+              vs. mitad anterior
             </span>
           </div>
         )}

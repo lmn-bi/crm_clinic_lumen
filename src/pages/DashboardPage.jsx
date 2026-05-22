@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react'
 import { jsPDF } from 'jspdf'
-import html2canvas from 'html2canvas'
+import html2canvas from 'html2canvas-pro'
 import * as XLSX from 'xlsx'
 
 import DashboardHeader from '../components/dashboard/DashboardHeader'
@@ -213,28 +213,102 @@ export default function DashboardPage() {
     if (!dashboardRef.current) return
     setExportingPDF(true)
 
+    // Asignar identificadores temporales unívocos a los contenedores originales de Recharts
+    const originalContainers = dashboardRef.current.querySelectorAll('.recharts-responsive-container')
+    originalContainers.forEach((orig, idx) => {
+      orig.setAttribute('data-recharts-id', String(idx))
+    })
+
     try {
-      // html2canvas renderiza con factor de escala 2 para alta definición.
-      // Oculta dinámicamente controles interactivos del PDF clonado con la opción onclone.
+      // html2canvas con escala optimizada y ajuste dinámico de ResponsiveContainers de Recharts.
+      // Forzamos scrollX: 0 y scrollY: 0 para evitar recortes si el usuario ha hecho scroll.
       const canvas = await html2canvas(dashboardRef.current, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
-        logging: false,
+        allowTaint: false, // Evita corromper el canvas si hay recursos de otros dominios (¡Evita SecurityError!)
+        backgroundColor: '#ffffff',
+        logging: true, // Habilitar logs detallados para diagnóstico en consola
+        scrollX: 0,
+        scrollY: 0,
         onclone: (clonedDoc) => {
+          // 1. Ocultar elementos interactivos y controles
           const noExportElements = clonedDoc.querySelectorAll('.no-export')
           noExportElements.forEach((el) => {
             el.style.display = 'none'
           })
+
+          // 2. Mostrar elementos exclusivos de exportación (como el resumen de parámetros)
+          const onlyExportElements = clonedDoc.querySelectorAll('.only-export')
+          onlyExportElements.forEach((el) => {
+            el.classList.remove('hidden')
+            el.style.display = el.getAttribute('data-display') || 'block'
+          })
+
+          // 3. Prevenir el error del círculo gigante de html2canvas eliminando sombras en elementos clonados
+          const shadowedElements = clonedDoc.querySelectorAll('[class*="shadow-"]')
+          shadowedElements.forEach((el) => {
+            el.style.boxShadow = 'none'
+            el.style.textShadow = 'none'
+          })
+          const roundedElements = clonedDoc.querySelectorAll('.rounded-full')
+          roundedElements.forEach((el) => {
+            el.style.boxShadow = 'none'
+            // Evitar que span.rounded-full se rendericen como inline invisibles o colapsados
+            if (el.tagName.toLowerCase() === 'span') {
+              el.style.display = 'inline-block'
+            }
+          })
+
+          // 4. Resolver el colapso de tamaño de Recharts ResponsiveContainers en el iframe clonado
+          const clonedContainers = clonedDoc.querySelectorAll('.recharts-responsive-container')
+          clonedContainers.forEach((clone) => {
+            const idx = clone.getAttribute('data-recharts-id')
+            if (idx !== null) {
+              const orig = dashboardRef.current.querySelector(`[data-recharts-id="${idx}"]`)
+              if (orig) {
+                const rect = orig.getBoundingClientRect()
+                if (rect.width > 0) {
+                  clone.style.width = `${rect.width}px`
+                  clone.style.height = `${rect.height}px`
+                  clone.style.position = 'relative'
+                  
+                  const svg = clone.querySelector('svg')
+                  if (svg) {
+                    svg.setAttribute('width', String(rect.width))
+                    svg.setAttribute('height', String(rect.height))
+                    svg.style.width = `${rect.width}px`
+                    svg.style.height = `${rect.height}px`
+                    svg.style.position = 'absolute'
+                    svg.style.left = '0'
+                    svg.style.top = '0'
+                  }
+                }
+              }
+            }
+          })
           
-          // Estilo extra para asegurar que el clon ocupe el ancho correcto
+          // 5. Asegurar un ancho correcto y quitar bordes del contenedor principal clonado
           const container = clonedDoc.querySelector('.dashboard-container')
           if (container) {
             container.style.boxShadow = 'none'
             container.style.border = 'none'
             container.style.padding = '10px'
+            container.style.maxWidth = '100%'
           }
         }
       })
+
+      // Eliminar los atributos temporales una vez completado el renderizado
+      originalContainers.forEach((orig) => {
+        orig.removeAttribute('data-recharts-id')
+      })
+
+      const canvasWidth = canvas.width
+      const canvasHeight = canvas.height
+
+      if (!canvasWidth || !canvasHeight) {
+        throw new Error(`La captura del dashboard generó un canvas de dimensiones inválidas (${canvasWidth}x${canvasHeight}).`)
+      }
 
       const imgData = canvas.toDataURL('image/png')
       const isLandscape = pdfOrientation === 'landscape'
@@ -249,8 +323,6 @@ export default function DashboardPage() {
       const pdfHeight = pdf.internal.pageSize.getHeight()
 
       // Redimensionamiento proporcional de la captura
-      const canvasWidth = canvas.width
-      const canvasHeight = canvas.height
       const imgWidth = pdfWidth
       const imgHeight = (canvasHeight * pdfWidth) / canvasWidth
 
@@ -273,8 +345,12 @@ export default function DashboardPage() {
       pdf.save(`dashboard-clinica-${fechaHoy}.pdf`)
     } catch (err) {
       console.error('Error al exportar PDF:', err)
-      alert('Ocurrió un error al generar la copia en PDF. Por favor reintente.')
+      alert(`Ocurrió un error al generar la copia en PDF: ${err.message || err}`)
     } finally {
+      // Limpieza de seguridad en el finally
+      originalContainers.forEach((orig) => {
+        orig.removeAttribute('data-recharts-id')
+      })
       setExportingPDF(false)
     }
   }
