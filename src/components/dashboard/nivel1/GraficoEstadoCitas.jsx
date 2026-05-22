@@ -1,5 +1,5 @@
 import React from 'react'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { CheckCircle2 } from 'lucide-react'
 
 // Nombres legibles en español y colores asociados para cada estado
@@ -97,29 +97,27 @@ export default function GraficoEstadoCitas({ citasPeriodo = [] }) {
       ) : (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 h-full">
           {/* Gráfico circular */}
-          <div className="h-[180px] w-full sm:w-1/2 flex items-center justify-center relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={75}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  content={<CustomTooltip />} 
-                  wrapperStyle={{ zIndex: 1000, outline: 'none' }}
-                  cursor={false}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="w-[180px] h-[180px] flex-shrink-0 flex items-center justify-center relative">
+            <PieChart width={180} height={180} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+              <Pie
+                data={chartData}
+                cx={90}
+                cy={90}
+                innerRadius={50}
+                outerRadius={75}
+                paddingAngle={3}
+                dataKey="value"
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                content={<CustomTooltip />}
+                wrapperStyle={{ zIndex: 1000, outline: 'none' }}
+                cursor={false}
+              />
+            </PieChart>
             
             {/* Texto en el centro de la rosquilla (Donut Chart) */}
             <div className="absolute flex flex-col items-center justify-center">

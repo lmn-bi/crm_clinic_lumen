@@ -48,10 +48,10 @@ export default function KPICard({
       <div className="flex items-start justify-between gap-3">
         {/* Lado izquierdo: Textos en gran formato */}
         <div className="flex-1 min-w-0">
-          <p className="text-2xs font-extrabold text-gray-400 uppercase tracking-widest truncate mb-1">
+          <p className="text-2xs font-extrabold text-gray-400 uppercase tracking-widest truncate mb-1 pdf-text">
             {titulo}
           </p>
-          <h3 className="text-3xl lg:text-3.5xl font-black text-gray-900 tracking-tight leading-none truncate">
+          <h3 className="text-3xl lg:text-3.5xl font-black text-gray-900 tracking-tight leading-none truncate pdf-text">
             {formatValue(valor, formato)}
           </h3>
         </div>
@@ -66,7 +66,7 @@ export default function KPICard({
 
       {/* Separador e información complementaria ampliada */}
       <div className="flex items-center justify-between mt-5 pt-3.5 border-t border-gray-50 gap-2 flex-wrap">
-        <p className="text-xs text-gray-500 font-bold tracking-tight truncate max-w-full">
+        <p className="text-xs text-gray-500 font-bold tracking-tight truncate max-w-full pdf-text">
           {subtitulo}
         </p>
 

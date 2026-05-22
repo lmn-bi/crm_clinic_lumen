@@ -259,6 +259,16 @@ export default function DashboardPage() {
             }
           })
 
+          // Fix truncated text in KPI cards for PDF rendering
+          const pdfTextElements = clonedDoc.querySelectorAll('.pdf-text')
+          pdfTextElements.forEach((el) => {
+            el.style.whiteSpace = 'normal'
+            el.style.overflow = 'visible'
+            el.style.textOverflow = 'clip'
+            el.style.maxWidth = 'none'
+            el.style.wordBreak = 'break-word'
+          })
+
           // 4. Resolver el colapso de tamaño de Recharts ResponsiveContainers en el iframe clonado
           const clonedContainers = clonedDoc.querySelectorAll('.recharts-responsive-container')
           clonedContainers.forEach((clone) => {
