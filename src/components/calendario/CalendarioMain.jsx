@@ -369,7 +369,7 @@ export default function CalendarioMain() {
                   {doctoresFiltro.length === 1 && (() => {
                     const doctorFiltrado = doctores.find(d => d.id === doctoresFiltro[0])
                     if (!doctorFiltrado?.horario) return null
-                    const zonas = calcularZonasNoDisponibles(doctorFiltrado.horario, dia.fechaObj.getDay(), 8, 20, 120)
+                    const zonas = calcularZonasNoDisponibles(doctorFiltrado.horario, dia.fechaObj.getDay(), 8, 21, 120)
                     return zonas.map((zona, idx) => (
                       <div
                         key={`nodisp-${dia.fechaStrISO}-${idx}`}
@@ -420,7 +420,7 @@ export default function CalendarioMain() {
                     const ahora = new Date()
                     const currHour = ahora.getHours()
                     const currMin = ahora.getMinutes()
-                    if (currHour >= 8 && currHour < 20) {
+                    if (currHour >= 8 && currHour < 21) {
                       const SCALE = 120 / 60
                       const top = ((currHour - 8) * 60 + currMin) * SCALE
                       return (

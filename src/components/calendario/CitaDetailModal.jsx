@@ -24,6 +24,7 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
   const [editDoctores, setEditDoctores] = useState([])
   const [editTipos, setEditTipos] = useState([])
   const [editDuracion, setEditDuracion] = useState(30)
+  const [forceCompletada, setForceCompletada] = useState(false)
 
   // Generar timeOptions (cada 15 min)
   const timeOptions = []
@@ -42,6 +43,7 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
       setShowFichaPaciente(false)
       setFichaPaciente(null)
       setIsEditing(false)
+      setForceCompletada(false)
     }
   }, [isOpen, cita])
 
@@ -87,7 +89,7 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
             fecha: fechaLocal,
             hora_inicio: horaLocal,
             tipo_tratamiento: cita.tipo_tratamiento,
-            estado: cita.estado,
+            estado: forceCompletada ? 'completada' : cita.estado,
             notas: cita.notas || '',
             presupuesto: cita.presupuesto || '',
             costo_tratamiento: cita.costo_tratamiento || ''
@@ -99,7 +101,7 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
       }
       fetchMaestros()
     }
-  }, [isEditing, cita])
+  }, [isEditing, cita, forceCompletada])
 
   if (!isOpen || !cita) return null
 
@@ -131,6 +133,13 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
       if (!window.confirm(`¿Estás seguro de que deseas cancelar la cita de ${cita.pacientes?.nombre} ${cita.pacientes?.apellidos}?`)) {
         return
       }
+    }
+    
+    if (nuevoEstado === 'completada') {
+      alert("Por favor completar el costo de la visita de la cita")
+      setForceCompletada(true)
+      setIsEditing(true)
+      return
     }
     
     setLoading(true)
@@ -181,6 +190,10 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
         const tipoObj = editTipos.find(t => t.nombre === value)
         if (tipoObj) setEditDuracion(tipoObj.duracion_min)
       }
+    }
+
+    if (name === 'estado' && value === 'completada') {
+      alert("Por favor completar el costo de la visita de la cita")
     }
   }
 
@@ -398,7 +411,7 @@ export default function CitaDetailModal({ isOpen, onClose, cita, onSaveSuccess }
                       {loading ? 'Guardando...' : 'Guardar cambios'}
                     </button>
                     <button
-                      type="button" onClick={() => setIsEditing(false)}
+                      type="button" onClick={() => { setIsEditing(false); setForceCompletada(false); }}
                       className="inline-flex justify-center w-full px-4 py-2 mt-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:mt-0 sm:w-auto sm:text-sm"
                     >
                       Cancelar edición
