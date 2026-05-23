@@ -352,7 +352,7 @@ export default function CalendarioMain() {
                 </div>
 
                 <div
-                  className={`relative flex-1 ${dia.esFinDeSemana ? 'bg-gray-100' : 'bg-white'}`}
+                  className={`relative w-full ${dia.esFinDeSemana ? 'bg-gray-100' : 'bg-white'}`}
                   style={{ height: `${HORAS.length * 120}px` }}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleColumnDrop(e, dia.fechaStrISO)}
