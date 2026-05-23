@@ -288,11 +288,17 @@ export default function CalendarioMain() {
             <label className="text-sm text-gray-500 mr-2">Ver agenda de:</label>
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white hover:bg-gray-50 flex items-center gap-2"
+              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white hover:bg-gray-50 flex items-center justify-between gap-2 min-w-[200px] max-w-[280px] cursor-pointer shadow-3xs"
             >
-              {doctoresFiltro.length === 0 ? 'Todos los doctores ▼' : 
-               doctoresFiltro.length === 1 ? '1 doctor ▼' : 
-               `${doctoresFiltro.length} doctores ▼`}
+              <span className="truncate">
+                {doctoresFiltro.length === 0 ? 'Todos los doctores' : 
+                 doctoresFiltro.length === 1 ? (() => {
+                   const doc = doctores.find(d => d.id === doctoresFiltro[0])
+                   return doc ? `Dr/a. ${doc.nombre} ${doc.apellidos}` : '1 doctor'
+                 })() : 
+                 `${doctoresFiltro.length} doctores`}
+              </span>
+              <span className="text-gray-400 text-xs shrink-0">▼</span>
             </button>
             
             {isFilterOpen && (
