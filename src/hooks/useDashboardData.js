@@ -39,8 +39,10 @@ export function useDashboardData({ fechaInicio, fechaFin }) {
             presupuesto,
             costo_tratamiento,
             doctor_id,
+            paciente_id,
             tipo_tratamiento,
             pacientes (
+              id,
               nombre,
               apellidos,
               telefono
