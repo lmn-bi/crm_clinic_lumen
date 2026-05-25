@@ -5,7 +5,6 @@ import GraficoIngresosMensuales from './GraficoIngresosMensuales'
 import GraficoEstadoCitas from './GraficoEstadoCitas'
 import GraficoOrigenCitas from './GraficoOrigenCitas'
 import TablaDoctores from './TablaDoctores'
-import TablaCitasRaw from './TablaCitasRaw'
 
 /**
  * Skeleton Loader animado para la fila de KPIs.
@@ -74,8 +73,7 @@ export default function Nivel1Dashboard({
   pacientesNuevos = 0,
   loading = false,
   error = null,
-  onRetry,
-  onExportExcel
+  onRetry
 }) {
   // 1. Renderizado de carga con esqueletos elegantes (sin spinners molestos)
   if (loading) {
@@ -144,12 +142,6 @@ export default function Nivel1Dashboard({
       {/* Fila 4: Rendimiento e Ingresos por Doctor */}
       <TablaDoctores 
         citasPeriodo={citasPeriodo} 
-      />
-
-      {/* Fila 5: Detalle de Citas del Período (Raw Data) con exportación a Excel integrada */}
-      <TablaCitasRaw 
-        citasPeriodo={citasPeriodo} 
-        onExportExcel={onExportExcel} 
       />
     </div>
   )

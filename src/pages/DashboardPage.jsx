@@ -5,8 +5,8 @@ import * as XLSX from 'xlsx'
 
 import DashboardHeader from '../components/dashboard/DashboardHeader'
 import Nivel1Dashboard from '../components/dashboard/nivel1/Nivel1Dashboard'
-// import Nivel2Dashboard from '../components/dashboard/nivel2/Nivel2Dashboard' // Próxima Fase
-// import Nivel3Dashboard from '../components/dashboard/nivel3/Nivel3Dashboard' // Futura Fase
+import Nivel2Dashboard from '../components/dashboard/nivel2/Nivel2Dashboard'
+import TablaCitasRaw from '../components/dashboard/nivel1/TablaCitasRaw'
 
 import { useDashboardData } from '../hooks/useDashboardData'
 import { DASHBOARD_CONFIG } from '../config/dashboardConfig'
@@ -535,21 +535,29 @@ export default function DashboardPage() {
           loading={loading}
           error={error}
           onRetry={handleRetry}
+        />
+      )}
+
+      {/* 3. Orquestador de Nivel 2 */}
+      {DASHBOARD_CONFIG.nivel2 && (
+        <Nivel2Dashboard
+          citasPeriodo={filteredCitas}
+          pacientesNuevos={pacientesNuevos}
+          loading={loading}
+          error={error}
+          onRetry={handleRetry}
+        />
+      )}
+
+      {/* Tabla de Detalle de Citas — activable independientemente por cliente */}
+      {DASHBOARD_CONFIG.tablaDetalle && (
+        <TablaCitasRaw
+          citasPeriodo={filteredCitas}
           onExportExcel={handleExportExcel}
         />
       )}
 
-      {/* 3. Marcadores de Posición Tiers Premium Siguientes (Fases 2 y 3) */}
-      {/*
-      {DASHBOARD_CONFIG.nivel2 && (
-        <Nivel2Dashboard
-          citasPeriodo={filteredCitas}
-          loading={loading}
-          error={error}
-        />
-      )}
-      */}
-
+      {/* 4. Marcadores de Posición Tiers Premium Siguientes (Fase 3) */}
       {/*
       {DASHBOARD_CONFIG.nivel3 && (
         <Nivel3Dashboard
