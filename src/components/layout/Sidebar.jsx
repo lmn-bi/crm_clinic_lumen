@@ -24,7 +24,12 @@ export default function Sidebar() {
       <div className="flex-1 flex flex-col min-h-0">
         <div className="flex items-center h-16 flex-shrink-0 px-4 bg-primary text-white">
           <Stethoscope className="h-8 w-8 mr-2" />
-          <span className="font-bold text-xl tracking-wider">LUMEN CRM</span>
+          <div className="flex flex-col">
+            <span className="font-bold text-sm tracking-wider leading-none">LUMEN CRM</span>
+            <span className="text-[10px] text-blue-200 mt-1.5 uppercase font-extrabold tracking-widest truncate max-w-[170px]" title={perfil?.clinicas?.nombre || 'Mi Clínica'}>
+              {perfil?.clinicas?.nombre || 'Mi Clínica'}
+            </span>
+          </div>
         </div>
         <div className="flex-1 flex flex-col overflow-y-auto">
           <nav className="flex-1 px-2 py-4 space-y-1">
