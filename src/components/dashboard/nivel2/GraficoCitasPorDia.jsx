@@ -150,9 +150,9 @@ export default function GraficoCitasPorDia({ citasPeriodo = [] }) {
       </div>
 
       {/* Gráfico BarChart de Recharts */}
-      <div className="flex-1 w-full min-h-0 py-2">
-        <ResponsiveContainer width="100%" height={210}>
-          <BarChart data={chartData} margin={{ top: 25, right: 10, left: -25, bottom: 5 }}>
+      <div className="flex-1 w-full min-h-0 py-2 flex items-center justify-center">
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={chartData} margin={{ top: 25, right: 10, left: -25, bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
             <XAxis 
               dataKey="key" 
@@ -180,7 +180,7 @@ export default function GraficoCitasPorDia({ citasPeriodo = [] }) {
 
       {/* Recomendación automática al pie */}
       {mejorDia && mejorDia.total > 0 && (
-        <div className="mt-2 pt-3 border-t border-gray-50 text-2xs text-gray-500 text-center leading-normal">
+        <div className="mt-3 pt-3 border-t border-gray-50 text-2xs text-gray-550 text-center leading-normal">
           El día con más actividad es el <strong className="text-blue-600 font-extrabold uppercase tracking-wide">{mejorDia.nombre}</strong> con <strong className="text-gray-800 font-bold">{mejorDia.total} citas</strong> en el período.
         </div>
       )}

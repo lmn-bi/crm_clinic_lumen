@@ -123,14 +123,13 @@ export default function GraficoTopTratamientos({ citasPeriodo = [] }) {
           </p>
         </div>
       </div>
-
       {/* Gráfico BarChart de Recharts */}
-      <div className="flex-1 w-full min-h-0 py-1">
-        <ResponsiveContainer width="100%" height={260}>
+      <div className="flex-1 w-full min-h-0 py-1 flex items-center justify-center">
+        <ResponsiveContainer width="100%" height={220}>
           <BarChart 
             data={chartData} 
             layout="vertical"
-            margin={{ top: 15, right: 20, left: 15, bottom: 5 }}
+            margin={{ top: 15, right: 20, left: 15, bottom: 10 }}
           >
             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#F3F4F6" />
             
@@ -166,14 +165,6 @@ export default function GraficoTopTratamientos({ citasPeriodo = [] }) {
 
             <Tooltip content={<CustomTooltip />} cursor={{ fill: '#F9FAFB', opacity: 0.7 }} />
             
-            <Legend 
-              verticalAlign="bottom" 
-              height={20} 
-              iconType="circle" 
-              iconSize={8} 
-              wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', fill: '#4B5563', paddingTop: '10px' }} 
-            />
-            
             {/* Bar de volumen de citas */}
             <Bar 
               dataKey="citas" 
@@ -198,13 +189,27 @@ export default function GraficoTopTratamientos({ citasPeriodo = [] }) {
         </ResponsiveContainer>
       </div>
 
-      {/* Recomendación inteligente automática en el pie */}
-      {topRelevante && topRelevante.ingresos > 0 && (
-        <div className="mt-2 pt-3 border-t border-gray-50 text-2xs text-gray-500 text-center leading-normal">
-          El tratamiento estrella por facturación es <strong className="text-emerald-600 font-extrabold uppercase tracking-wide">{topRelevante.name}</strong>, sumando <strong className="text-gray-800 font-bold">{formatMoneda(topRelevante.ingresos)}</strong> facturados en <strong className="text-gray-800 font-bold">{topRelevante.citas} citas</strong>.
+      {/* Leyenda premium externa y análisis al pie */}
+      <div className="mt-3 pt-3 border-t border-gray-50 flex flex-col gap-2.5">
+        {/* Leyenda HTML */}
+        <div className="flex justify-center items-center gap-6 select-none">
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-blue-50/30 border border-blue-100/40">
+            <span className="w-2 h-2 rounded-full inline-block bg-[#3B82F6]" />
+            <span className="text-[10px] font-bold text-blue-800">Volumen (Citas)</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-50/30 border border-emerald-100/40">
+            <span className="w-2 h-2 rounded-full inline-block bg-[#10B981]" />
+            <span className="text-[10px] font-bold text-emerald-800">Ingresos (€)</span>
+          </div>
         </div>
-      )}
 
+        {/* Recomendación inteligente automática en el pie */}
+        {topRelevante && topRelevante.ingresos > 0 && (
+          <div className="text-2xs text-gray-550 text-center leading-normal">
+            El tratamiento estrella por facturación es <strong className="text-emerald-600 font-extrabold uppercase tracking-wide">{topRelevante.name}</strong>, sumando <strong className="text-gray-800 font-bold">{formatMoneda(topRelevante.ingresos)}</strong> facturados en <strong className="text-gray-800 font-bold">{topRelevante.citas} citas</strong>.
+          </div>
+        )}
+      </div>
     </div>
   )
 }

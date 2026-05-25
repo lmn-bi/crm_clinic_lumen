@@ -146,9 +146,9 @@ export default function GraficoPacientesTipo({ citasPeriodo = [] }) {
       </div>
 
       {/* Gráfico LineChart de Recharts */}
-      <div className="flex-1 w-full min-h-0 py-2">
-        <ResponsiveContainer width="100%" height={210}>
-          <LineChart data={chartData} margin={{ top: 15, right: 15, left: -25, bottom: 5 }}>
+      <div className="flex-1 w-full min-h-0 py-1 flex items-center justify-center">
+        <ResponsiveContainer width="100%" height={165}>
+          <LineChart data={chartData} margin={{ top: 15, right: 15, left: -25, bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
             <XAxis 
               dataKey="name" 
@@ -163,7 +163,6 @@ export default function GraficoPacientesTipo({ citasPeriodo = [] }) {
               allowDecimals={false}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Legend verticalAlign="bottom" height={25} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', fill: '#4B5563' }} />
             
             <Line 
               type="monotone" 
@@ -187,12 +186,27 @@ export default function GraficoPacientesTipo({ citasPeriodo = [] }) {
         </ResponsiveContainer>
       </div>
 
-      {/* Indicador de fidelización semaforizado */}
-      <div className="mt-2 pt-3 border-t border-gray-50 flex items-center justify-between text-2xs font-semibold text-gray-500 flex-wrap gap-2">
-        <span>Resumen: {nuevosTotal} nuevos / {recurrentesTotal} recurrentes</span>
-        <span className={`px-2.5 py-1 rounded-full text-3xs font-extrabold border shadow-3xs uppercase tracking-wide transition-all ${getFidelityColorClass(tasaFidelizacion)}`}>
-          Tasa de fidelización: {tasaFidelizacion}%
-        </span>
+      {/* Leyenda premium externa y Resumen de fidelización sin solapamientos */}
+      <div className="mt-3 pt-3 border-t border-gray-50 flex flex-col gap-2.5">
+        {/* Leyenda HTML */}
+        <div className="flex justify-center items-center gap-6 select-none">
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-50/30 border border-emerald-100/40">
+            <span className="w-2 h-2 rounded-full inline-block bg-[#10B981]" />
+            <span className="text-[10px] font-bold text-emerald-800">Nuevos</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-blue-50/30 border border-blue-100/40">
+            <span className="w-2 h-2 rounded-full inline-block bg-[#3B82F6]" />
+            <span className="text-[10px] font-bold text-blue-800">Recurrentes</span>
+          </div>
+        </div>
+
+        {/* Resumen e Indicador de fidelización semaforizado */}
+        <div className="flex items-center justify-between text-2xs font-semibold text-gray-550 flex-wrap gap-2">
+          <span>Resumen: {nuevosTotal} nuevos / {recurrentesTotal} recurrentes</span>
+          <span className={`px-2.5 py-1 rounded-full text-3xs font-extrabold border shadow-3xs uppercase tracking-wide transition-all ${getFidelityColorClass(tasaFidelizacion)}`}>
+            Tasa de fidelización: {tasaFidelizacion}%
+          </span>
+        </div>
       </div>
 
     </div>
