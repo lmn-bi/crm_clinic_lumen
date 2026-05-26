@@ -13,15 +13,22 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data, error } = await supabase
         .from('perfiles')
-        .select('rol, doctor_id, clinica_id, clinicas (id, nombre)')
+        .select('rol, doctor_id, clinica_id, clinicas (id, nombre, hora_apertura, hora_cierre, asistente_voz_activo)')
         .eq('id', userId)
         .single()
 
       if (error) throw error
       setPerfil(data)
     } catch (error) {
-      console.error('Error fetching profile:', error.message)
+      console.error('Error fetching profile:', error)
+      alert(`Error crítico al cargar perfil: ${error.message}\nCódigo: ${error.code}`)
       setPerfil(null)
+    }
+  }
+
+  const refreshProfile = async () => {
+    if (user?.id) {
+      await fetchProfile(user.id)
     }
   }
 
@@ -68,7 +75,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, perfil, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, perfil, login, logout, loading, refreshProfile }}>
       {!loading && children}
     </AuthContext.Provider>
   )

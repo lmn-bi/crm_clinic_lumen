@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import PacientesTable from '../components/pacientes/PacientesTable'
 import PacienteFormModal from '../components/pacientes/PacienteFormModal'
 import PacienteFichaPanel from '../components/pacientes/PacienteFichaPanel'
+import { useAuth } from '../context/AuthContext'
 
 export default function PacientesPage() {
   const [pacientes, setPacientes] = useState([])
@@ -16,12 +17,16 @@ export default function PacientesPage() {
   const [isFichaOpen, setIsFichaOpen] = useState(false)
   const [pacienteForFicha, setPacienteForFicha] = useState(null)
 
+  const { perfil } = useAuth()
+
   const fetchPacientes = async () => {
+    if (!perfil?.clinica_id) return
     setLoading(true)
     try {
       const { data, error } = await supabase
         .from('pacientes')
         .select('*')
+        .eq('clinica_id', perfil.clinica_id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -35,8 +40,10 @@ export default function PacientesPage() {
   }
 
   useEffect(() => {
-    fetchPacientes()
-  }, [])
+    if (perfil?.clinica_id) {
+      fetchPacientes()
+    }
+  }, [perfil?.clinica_id])
 
   const handleOpenNew = () => {
     setPacienteToEdit(null)
@@ -92,8 +99,8 @@ export default function PacientesPage() {
       {/* Cabecera de la página */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Pacientes</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Pacientes</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Lista completa de los pacientes registrados en la clínica.
           </p>
         </div>
@@ -118,7 +125,7 @@ export default function PacientesPage() {
           placeholder="Buscar por nombre, apellido, DNI, teléfono o email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-primary focus:border-primary sm:text-sm"
+          className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-primary focus:border-primary sm:text-sm dark:bg-gray-800 dark:text-white transition-colors"
         />
       </div>
 

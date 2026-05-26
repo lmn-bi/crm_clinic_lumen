@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react'
 import { X, Search } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { validarHorarioDoctor, fetchHorarioDoctor } from '../../utils/horarioUtils'
+import { useAuth } from '../../context/AuthContext'
 
 export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaInicio, horaInicio }) {
+  const { perfil } = useAuth()
   // Datos maestros
   const [doctores, setDoctores] = useState([])
   const [tiposTratamiento, setTiposTratamiento] = useState([])
@@ -65,8 +67,8 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
   const fetchMaestros = async () => {
     try {
       const [docsRes, tiposRes] = await Promise.all([
-        supabase.from('doctores').select('id, nombre, apellidos').eq('activo', true),
-        supabase.from('tipos_tratamiento').select('*').eq('activo', true).order('nombre')
+        supabase.from('doctores').select('id, nombre, apellidos').eq('activo', true).eq('clinica_id', perfil.clinica_id),
+        supabase.from('tipos_tratamiento').select('*').eq('activo', true).eq('clinica_id', perfil.clinica_id).order('nombre')
       ])
 
       if (docsRes.error) throw docsRes.error
@@ -100,6 +102,7 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
         const { data, error } = await supabase
           .from('pacientes')
           .select('id, nombre, apellidos, telefono, doc_identidad')
+          .eq('clinica_id', perfil.clinica_id)
           .or(`nombre.ilike.%${pacienteSearch}%,apellidos.ilike.%${pacienteSearch}%,telefono.ilike.%${pacienteSearch}%`)
           .limit(5)
 
@@ -138,6 +141,7 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
       .from('citas')
       .select('id, inicio, fin, pacientes(nombre, apellidos)')
       .eq('doctor_id', doctorId)
+      .eq('clinica_id', perfil.clinica_id)
       .neq('estado', 'cancelada')
       .lt('inicio', fin.toISOString())
       .gt('fin', inicio.toISOString())
@@ -189,7 +193,8 @@ export default function CitaFormModal({ isOpen, onClose, onSaveSuccess, fechaIni
         estado: formData.estado,
         origen: 'web',
         notas: formData.notas || null,
-        presupuesto: formData.presupuesto ? parseFloat(formData.presupuesto) : null
+        presupuesto: formData.presupuesto ? parseFloat(formData.presupuesto) : null,
+        clinica_id: perfil.clinica_id
       }
 
       const { error } = await supabase

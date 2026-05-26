@@ -8,7 +8,6 @@ import CitaFormModal from './CitaFormModal'
 import CitaDetailModal from './CitaDetailModal'
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-const HORAS = Array.from({ length: 13 }, (_, i) => i + 8) // 8 a 20 (13 horas)
 
 function getLunes(d) {
   const date = new Date(d)
@@ -22,6 +21,11 @@ export default function CalendarioMain() {
   const isAdmin = perfil?.rol === 'admin'
 
   const [currentDate, setCurrentDate] = useState(new Date())
+
+  const baseHoraApertura = perfil?.clinicas?.hora_apertura ? parseInt(perfil.clinicas.hora_apertura.split(':')[0], 10) : 8
+  const baseHoraCierre = perfil?.clinicas?.hora_cierre ? parseInt(perfil.clinicas.hora_cierre.split(':')[0], 10) : 21
+  
+  const horaAperturaNum = baseHoraApertura
   
   const inicioSemana = useMemo(() => {
     const l = getLunes(currentDate)
@@ -44,10 +48,12 @@ export default function CalendarioMain() {
   useEffect(() => {
     if (perfil) {
       if (isAdmin) {
-        supabase.from('doctores').select('id, nombre, apellidos, color_calendario, horario').eq('activo', true)
+        supabase.from('doctores').select('id, nombre, apellidos, color_calendario, horario').eq('activo', true).eq('clinica_id', perfil.clinica_id)
           .then(({ data }) => setDoctores(data || []))
         setDoctoresFiltro([])
-      } else {
+      } else if (perfil.doctor_id) {
+        supabase.from('doctores').select('id, nombre, apellidos, color_calendario, horario').eq('id', perfil.doctor_id)
+          .then(({ data }) => setDoctores(data || []))
         setDoctoresFiltro([perfil.doctor_id])
       }
     }
@@ -71,7 +77,28 @@ export default function CalendarioMain() {
   }
 
   // Se extrae refetch para forzar actualización al cerrar modales
-  const { citas, loading, refetch } = useCitasRealtime(inicioSemana, finSemana, doctoresFiltro)
+  const { citas, loading, refetch } = useCitasRealtime(inicioSemana, finSemana, doctoresFiltro, perfil?.clinica_id)
+
+  const horaCierreNum = useMemo(() => {
+    let maxHour = baseHoraCierre
+    if (citas && citas.length > 0) {
+      citas.forEach(cita => {
+        const finDate = new Date(cita.fin)
+        let h = finDate.getHours()
+        if (finDate.getMinutes() > 0) h += 1
+        if (h > maxHour) maxHour = h
+      })
+    }
+    return maxHour
+  }, [baseHoraCierre, citas])
+
+  const numHoras = Math.max(1, horaCierreNum - horaAperturaNum)
+
+  const HORAS = useMemo(() => {
+    return Array.from({ length: numHoras }, (_, i) => i + horaAperturaNum)
+  }, [horaAperturaNum, numHoras])
+  
+  const offsetBase = horaAperturaNum * 60
 
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
@@ -165,7 +192,7 @@ export default function CalendarioMain() {
     // Cada slot de 15 min = 30px
     const slotIndex = Math.max(0, Math.floor(relativeY / 30))
     const totalMinutes = slotIndex * 15
-    const hora = Math.min(19, Math.floor(totalMinutes / 60) + 8)
+    const hora = Math.min(horaCierreNum - 1, Math.floor(totalMinutes / 60) + horaAperturaNum)
     const minuto = totalMinutes % 60
 
     const startDate = new Date(`${fechaStrISO}T${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}:00`)
@@ -214,7 +241,6 @@ export default function CalendarioMain() {
     const min = parseInt(timeParts.find(p => p.type === 'minute').value)
     
     const minutesFromStartOfDay = hour * 60 + min
-    const offsetBase = 8 * 60
     
     // Altura de fila 120px = SCALE 2 (1 min = 2px)
     const SCALE = 120 / 60
@@ -260,23 +286,23 @@ export default function CalendarioMain() {
   }, [citas, diasSemana])
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-gray-200">
+    <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 transition-colors duration-200">
       
       {/* CABECERA (Controles) */}
-      <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-gray-200">
+      <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-4 mb-4 sm:mb-0">
-          <button onClick={goToToday} className="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded hover:bg-gray-50">
+          <button onClick={goToToday} className="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200 transition-colors">
             Hoy
           </button>
           <div className="flex items-center space-x-1">
-            <button onClick={prevWeek} className="p-1.5 rounded-full hover:bg-gray-100" title="Semana anterior">
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <button onClick={prevWeek} className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Semana anterior">
+              <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             </button>
-            <span className="text-lg font-semibold text-gray-900 min-w-[200px] text-center capitalize">
+            <span className="text-lg font-semibold text-gray-900 dark:text-white min-w-[200px] text-center capitalize">
               {tituloRango}
             </span>
-            <button onClick={nextWeek} className="p-1.5 rounded-full hover:bg-gray-100" title="Semana siguiente">
-              <ChevronRight className="w-5 h-5 text-gray-600" />
+            <button onClick={nextWeek} className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="Semana siguiente">
+              <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             </button>
           </div>
           {loading && <span className="flex h-3 w-3"><span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-blue-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span></span>}
@@ -285,10 +311,10 @@ export default function CalendarioMain() {
         {/* Filtro de doctores (Solo admin) */}
         {isAdmin && (
           <div className="relative flex items-center" ref={filterRef}>
-            <label className="text-sm text-gray-500 mr-2">Ver agenda de:</label>
+            <label className="text-sm text-gray-500 dark:text-gray-400 mr-2">Ver agenda de:</label>
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white hover:bg-gray-50 flex items-center justify-between gap-2 min-w-[200px] max-w-[280px] cursor-pointer shadow-3xs"
+              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 text-sm bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between gap-2 min-w-[200px] max-w-[280px] cursor-pointer shadow-3xs dark:text-gray-200 transition-colors"
             >
               <span className="truncate">
                 {doctoresFiltro.length === 0 ? 'Todos los doctores' : 
@@ -302,21 +328,21 @@ export default function CalendarioMain() {
             </button>
             
             {isFilterOpen && (
-              <div className="absolute top-full right-0 z-50 bg-white shadow-lg rounded-md border border-gray-200 min-w-[220px] mt-1 py-1">
-                <label className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm font-medium border-b border-gray-100">
+              <div className="absolute top-full right-0 z-50 bg-white dark:bg-gray-800 shadow-lg rounded-md border border-gray-200 dark:border-gray-700 min-w-[220px] mt-1 py-1">
+                <label className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer text-sm font-medium border-b border-gray-100 dark:border-gray-700 dark:text-gray-200">
                   <input type="checkbox" checked={doctoresFiltro.length === 0} onChange={() => setDoctoresFiltro([])} />
                   Todos los doctores
                 </label>
                 <div className="max-h-60 overflow-y-auto">
                   {doctores.map(doctor => (
-                    <label key={doctor.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                    <label key={doctor.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                       <input 
                         type="checkbox" 
                         checked={doctoresFiltro.includes(doctor.id)}
                         onChange={() => toggleDoctorFiltro(doctor.id)} 
                       />
                       <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: doctor.color_calendario || '#3B82F6' }}></span>
-                      <span className="text-sm text-gray-700 truncate">Dr/a. {doctor.nombre} {doctor.apellidos}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 truncate">Dr/a. {doctor.nombre} {doctor.apellidos}</span>
                     </label>
                   ))}
                 </div>
@@ -331,8 +357,8 @@ export default function CalendarioMain() {
         <div className="flex w-full min-w-[800px]">
           
           {/* Columna de Horas */}
-          <div className="w-16 flex-none bg-white border-r border-gray-200 z-10 sticky left-0">
-            <div className="h-12 border-b border-gray-200 bg-gray-50"></div>
+          <div className="w-16 flex-none bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-10 sticky left-0 transition-colors">
+            <div className="h-12 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50"></div>
             <div className="relative" style={{ height: `${HORAS.length * 120}px` }}>
               {HORAS.map((h, i) => (
                 <div key={h} className="absolute w-full text-right pr-2 text-xs text-gray-400 -mt-2" style={{ top: `${i * 120}px` }}>
@@ -343,16 +369,16 @@ export default function CalendarioMain() {
           </div>
 
           {/* Días y Columnas */}
-          <div className="flex-1 flex relative bg-gray-50">
+          <div className="flex-1 flex relative bg-gray-50 dark:bg-gray-900 transition-colors">
             {diasSemana.map((dia) => (
-              <div key={dia.fechaStrISO} className="flex-1 border-r border-gray-200 min-w-[100px] flex flex-col">
-                <div className={`h-12 border-b border-gray-200 flex flex-col items-center justify-center sticky top-0 z-10 ${dia.esHoy ? 'bg-blue-50' : 'bg-white'}`}>
-                  <span className={`text-xs uppercase font-medium ${dia.esHoy ? 'text-primary' : 'text-gray-500'}`}>{dia.nombre}</span>
-                  <span className={`text-lg leading-tight ${dia.esHoy ? 'font-bold text-primary' : 'text-gray-900'}`}>{dia.fechaObj.getDate()}</span>
+              <div key={dia.fechaStrISO} className="flex-1 border-r border-gray-200 dark:border-gray-700 min-w-[100px] flex flex-col">
+                <div className={`h-12 border-b border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center sticky top-0 z-10 transition-colors ${dia.esHoy ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800'}`}>
+                  <span className={`text-xs uppercase font-medium ${dia.esHoy ? 'text-primary dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>{dia.nombre}</span>
+                  <span className={`text-lg leading-tight ${dia.esHoy ? 'font-bold text-primary dark:text-blue-400' : 'text-gray-900 dark:text-gray-200'}`}>{dia.fechaObj.getDate()}</span>
                 </div>
 
                 <div
-                  className={`relative w-full flex-none ${dia.esFinDeSemana ? 'bg-gray-100' : 'bg-white'}`}
+                  className={`relative w-full flex-none transition-colors ${dia.esFinDeSemana ? 'bg-gray-100 dark:bg-gray-800/80' : 'bg-white dark:bg-gray-800'}`}
                   style={{ height: `${HORAS.length * 120}px` }}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleColumnDrop(e, dia.fechaStrISO)}
@@ -362,9 +388,9 @@ export default function CalendarioMain() {
                     [0, 15, 30, 45].map((m, mIdx) => (
                       <div
                         key={`slot-${dia.fechaStrISO}-${h}-${m}`}
-                        className={`absolute w-full cursor-pointer 
-                          ${m === 0 ? 'border-t border-gray-300' : 'border-t border-gray-200 border-dashed'}
-                          ${dia.esFinDeSemana ? 'hover:bg-gray-200' : 'hover:bg-gray-50'}`}
+                        className={`absolute w-full cursor-pointer transition-colors
+                          ${m === 0 ? 'border-t border-gray-300 dark:border-gray-600' : 'border-t border-gray-200 dark:border-gray-700/50 border-dashed'}
+                          ${dia.esFinDeSemana ? 'hover:bg-gray-200 dark:hover:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
                         style={{ top: `${i * 120 + mIdx * 30}px`, height: '30px' }}
                         onClick={() => handleSlotClick(dia.fechaStrISO, h, m)}
                       />
@@ -375,7 +401,7 @@ export default function CalendarioMain() {
                   {doctoresFiltro.length === 1 && (() => {
                     const doctorFiltrado = doctores.find(d => d.id === doctoresFiltro[0])
                     if (!doctorFiltrado?.horario) return null
-                    const zonas = calcularZonasNoDisponibles(doctorFiltrado.horario, dia.fechaObj.getDay(), 8, 21, 120)
+                    const zonas = calcularZonasNoDisponibles(doctorFiltrado.horario, dia.fechaObj.getDay(), horaAperturaNum, horaCierreNum, 120)
                     return zonas.map((zona, idx) => (
                       <div
                         key={`nodisp-${dia.fechaStrISO}-${idx}`}
@@ -426,9 +452,9 @@ export default function CalendarioMain() {
                     const ahora = new Date()
                     const currHour = ahora.getHours()
                     const currMin = ahora.getMinutes()
-                    if (currHour >= 8 && currHour < 21) {
+                    if (currHour >= horaAperturaNum && currHour < horaCierreNum) {
                       const SCALE = 120 / 60
-                      const top = ((currHour - 8) * 60 + currMin) * SCALE
+                      const top = ((currHour - horaAperturaNum) * 60 + currMin) * SCALE
                       return (
                         <div className="absolute w-full border-t-2 border-red-500 z-20 pointer-events-none" style={{ top: `${top}px` }}>
                           <div className="absolute -left-1.5 -top-1.5 w-3 h-3 rounded-full bg-red-500"></div>
@@ -437,6 +463,9 @@ export default function CalendarioMain() {
                     }
                     return null
                   })()}
+
+                  {/* Línea vertical derecha persistente — se dibuja encima de los slots */}
+                  <div className="absolute top-0 right-0 w-px h-full bg-gray-200 dark:bg-gray-700 z-[2] pointer-events-none"></div>
                 </div>
               </div>
             ))}

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../context/AuthContext'
 
 export default function PacienteFormModal({ isOpen, onClose, pacienteToEdit, onSaveSuccess }) {
+  const { perfil } = useAuth()
   const [formData, setFormData] = useState({
     nombre: '',
     apellidos: '',
@@ -58,7 +60,8 @@ export default function PacienteFormModal({ isOpen, onClose, pacienteToEdit, onS
     try {
       const payload = {
         ...formData,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        clinica_id: perfil.clinica_id
       }
 
       if (pacienteToEdit) {

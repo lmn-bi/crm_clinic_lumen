@@ -8,8 +8,9 @@ import { supabase } from '../lib/supabaseClient'
  * @param {Object} params
  * @param {Date} params.fechaInicio - Objeto Date que marca el inicio del período
  * @param {Date} params.fechaFin - Objeto Date que marca el final del período
+ * @param {string} params.clinica_id - UUID de la clínica a filtrar
  */
-export function useDashboardData({ fechaInicio, fechaFin }) {
+export function useDashboardData({ fechaInicio, fechaFin, clinica_id }) {
   const [citasPeriodo, setCitasPeriodo] = useState([])
   const [pacientesNuevos, setPacientesNuevos] = useState(0)
   const [totalPacientes, setTotalPacientes] = useState(0)
@@ -17,7 +18,7 @@ export function useDashboardData({ fechaInicio, fechaFin }) {
   const [error, setError] = useState(null)
 
   const fetchData = useCallback(async () => {
-    if (!fechaInicio || !fechaFin) return
+    if (!fechaInicio || !fechaFin || !clinica_id) return
 
     setLoading(true)
     setError(null)
@@ -53,6 +54,7 @@ export function useDashboardData({ fechaInicio, fechaFin }) {
               color_calendario
             )
           `)
+          .eq('clinica_id', clinica_id)
           .gte('inicio', inicioISO)
           .lte('inicio', finISO),
 
@@ -60,6 +62,7 @@ export function useDashboardData({ fechaInicio, fechaFin }) {
         supabase
           .from('pacientes')
           .select('id', { count: 'exact', head: true })
+          .eq('clinica_id', clinica_id)
           .gte('created_at', inicioISO)
           .lte('created_at', finISO),
 
@@ -67,6 +70,7 @@ export function useDashboardData({ fechaInicio, fechaFin }) {
         supabase
           .from('pacientes')
           .select('id', { count: 'exact', head: true })
+          .eq('clinica_id', clinica_id)
       ])
 
       // Validación de errores
@@ -83,7 +87,7 @@ export function useDashboardData({ fechaInicio, fechaFin }) {
     } finally {
       setLoading(false)
     }
-  }, [fechaInicio, fechaFin])
+  }, [fechaInicio, fechaFin, clinica_id])
 
   // Recargar los datos cuando cambian las fechas
   useEffect(() => {

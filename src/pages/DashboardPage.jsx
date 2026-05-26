@@ -8,6 +8,7 @@ import Nivel1Dashboard from '../components/dashboard/nivel1/Nivel1Dashboard'
 import Nivel2Dashboard from '../components/dashboard/nivel2/Nivel2Dashboard'
 import TablaCitasRaw from '../components/dashboard/nivel1/TablaCitasRaw'
 
+import { useAuth } from '../context/AuthContext'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { DASHBOARD_CONFIG } from '../config/dashboardConfig'
 
@@ -23,6 +24,8 @@ const ESTADOS_CONFIG = {
 }
 
 export default function DashboardPage() {
+  const { perfil } = useAuth()
+
   // 1. ESTADO DE FILTROS DE FECHAS (Base de Datos)
   // Valores iniciales: Primer día de hace 12 meses hasta el último día del mes actual.
   const [fechaInicio, setFechaInicio] = useState(() => {
@@ -69,7 +72,7 @@ export default function DashboardPage() {
     loading,
     error,
     refetch
-  } = useDashboardData({ fechaInicio, fechaFin })
+  } = useDashboardData({ fechaInicio, fechaFin, clinica_id: perfil?.clinica_id })
 
   const [lastUpdated, setLastUpdated] = useState(() => new Date())
 

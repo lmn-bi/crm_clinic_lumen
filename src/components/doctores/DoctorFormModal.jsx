@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { X, Plus, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../context/AuthContext'
 
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
 export default function DoctorFormModal({ isOpen, onClose, doctorToEdit, onSaveSuccess }) {
+  const { perfil } = useAuth()
   const [formData, setFormData] = useState({
     nombre: '',
     apellidos: '',
@@ -131,7 +133,8 @@ export default function DoctorFormModal({ isOpen, onClose, doctorToEdit, onSaveS
       
       const payload = { 
         ...formData,
-        horario: payloadHorario
+        horario: payloadHorario,
+        clinica_id: perfil.clinica_id
       }
 
       if (doctorToEdit) {

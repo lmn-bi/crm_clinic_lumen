@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../context/AuthContext'
 
 export default function VisitaFormModal({ isOpen, onClose, pacienteId, onSaveSuccess }) {
+  const { perfil } = useAuth()
   const [doctores, setDoctores] = useState([])
   
   // Para la fecha por defecto (hoy en formato YYYY-MM-DD)
@@ -41,6 +43,7 @@ export default function VisitaFormModal({ isOpen, onClose, pacienteId, onSaveSuc
         .from('doctores')
         .select('id, nombre, apellidos')
         .eq('activo', true)
+        .eq('clinica_id', perfil.clinica_id)
         .order('nombre', { ascending: true })
 
       if (error) throw error
@@ -77,7 +80,8 @@ export default function VisitaFormModal({ isOpen, onClose, pacienteId, onSaveSuc
         fecha: formData.fecha,
         tratamiento: formData.tratamiento,
         observaciones: formData.observaciones || null,
-        proximos_pasos: formData.proximos_pasos || null
+        proximos_pasos: formData.proximos_pasos || null,
+        clinica_id: perfil.clinica_id
       }
 
       const { error } = await supabase

@@ -6,15 +6,16 @@ import { supabase } from '../lib/supabaseClient'
  * @param {Date} inicioSemana - Inicio del rango (en UTC)
  * @param {Date} finSemana - Fin del rango (en UTC)
  * @param {Array<string>} doctoresFiltro - Array de UUIDs de doctores, vacío significa "todos"
+ * @param {string} clinica_id - UUID de la clínica a filtrar
  * @returns {{ citas: Array, loading: boolean, error: string|null, refetch: Function }}
  */
-export default function useCitasRealtime(inicioSemana, finSemana, doctoresFiltro = []) {
+export default function useCitasRealtime(inicioSemana, finSemana, doctoresFiltro = [], clinica_id) {
   const [citas, setCitas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   const fetchCitas = async () => {
-    if (!inicioSemana || !finSemana) return
+    if (!inicioSemana || !finSemana || !clinica_id) return
 
     setLoading(true)
     setError(null)
@@ -26,6 +27,7 @@ export default function useCitasRealtime(inicioSemana, finSemana, doctoresFiltro
           pacientes (nombre, apellidos),
           doctores (nombre, apellidos, color_calendario, horario)
         `)
+        .eq('clinica_id', clinica_id)
         .gte('inicio', inicioSemana.toISOString())
         .lte('inicio', finSemana.toISOString())
         .neq('estado', 'cancelada')
@@ -52,7 +54,7 @@ export default function useCitasRealtime(inicioSemana, finSemana, doctoresFiltro
     // Configurar suscripción Realtime para la tabla citas
     const channel = supabase
       .channel('public:citas')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'citas' }, async (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'citas', filter: `clinica_id=eq.${clinica_id}` }, async (payload) => {
         const newCitaId = payload.new.id
         // Hacemos fetch manual de la nueva cita para traer los datos relacionados (paciente y doctor)
         const { data: newCita } = await supabase
@@ -78,7 +80,7 @@ export default function useCitasRealtime(inicioSemana, finSemana, doctoresFiltro
           })
         }
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'citas' }, async (payload) => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'citas', filter: `clinica_id=eq.${clinica_id}` }, async (payload) => {
         const updatedCitaId = payload.new.id
         // Fetch para relaciones
         const { data: updatedCita } = await supabase
@@ -109,7 +111,7 @@ export default function useCitasRealtime(inicioSemana, finSemana, doctoresFiltro
           })
         }
       })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'citas' }, (payload) => {
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'citas', filter: `clinica_id=eq.${clinica_id}` }, (payload) => {
         const deletedCitaId = payload.old.id
         setCitas(prev => prev.filter(c => c.id !== deletedCitaId))
       })
@@ -118,7 +120,7 @@ export default function useCitasRealtime(inicioSemana, finSemana, doctoresFiltro
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [inicioSemana, finSemana, JSON.stringify(doctoresFiltro)])
+  }, [inicioSemana, finSemana, JSON.stringify(doctoresFiltro), clinica_id])
 
   return { citas, loading, error, refetch: fetchCitas }
 }

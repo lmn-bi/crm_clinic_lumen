@@ -3,11 +3,14 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
 import LoginPage from './pages/LoginPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
+import UpdatePasswordPage from './pages/UpdatePasswordPage'
 import DashboardPage from './pages/DashboardPage'
 import PacientesPage from './pages/PacientesPage'
 import CalendarioPage from './pages/CalendarioPage'
 import DoctoresPage from './pages/DoctoresPage'
 import PresupuestosPage from './pages/PresupuestosPage'
+import SettingsPage from './pages/SettingsPage'
 
 import MainLayout from './components/layout/MainLayout'
 
@@ -36,6 +39,8 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/update-password" element={<UpdatePasswordPage />} />
       
       {/* Rutas con Layout Principal */}
       <Route element={<MainLayout />}>
@@ -51,7 +56,7 @@ function App() {
         <Route
           path="/pacientes"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'doctor']}>
               <PacientesPage />
             </ProtectedRoute>
           }
@@ -80,6 +85,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <PresupuestosPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <SettingsPage />
             </ProtectedRoute>
           }
         />

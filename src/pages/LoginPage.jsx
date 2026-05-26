@@ -1,14 +1,17 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabaseClient'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [clinicName, setClinicName] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [loading, setLoading] = useState(false)
+  const [validatingClinic, setValidatingClinic] = useState(false)
   
-  const { login, perfil } = useAuth()
+  const { login, logout, perfil } = useAuth()
   const navigate = useNavigate()
 
   // Manejar el envío del formulario
@@ -16,19 +19,37 @@ export default function LoginPage() {
     e.preventDefault()
     setErrorMsg('')
     setLoading(true)
+    setValidatingClinic(true)
 
     try {
-      await login(email, password)
-      // Nota: La redirección se maneja usualmente después de que el context actualice el usuario y perfil
-      // Opcionalmente podemos hacerlo aquí esperando un pequeño retraso, 
-      // o dejar que un componente superior re-renderice basado en AuthContext.
-      // Aquí haremos la redirección en base al AuthContext, pero necesitamos el perfil.
-      // Como login() solo devuelve el token/sesión pero fetchProfile puede tardar un poco,
-      // la mejor práctica es redirigir usando un useEffect, pero para mantener la UX lo dejamos a cargo
-      // del componente si el usuario ya está autenticado.
+      const { user } = await login(email, password)
+      
+      // Validar clínica post-login
+      const { data: perfilData, error: perfilError } = await supabase
+        .from('perfiles')
+        .select('clinicas(nombre)')
+        .eq('id', user.id)
+        .single()
+
+      if (perfilError || !perfilData) {
+        await logout()
+        throw new Error('No se pudo verificar la clínica asignada al usuario.')
+      }
+
+      const dbClinicName = perfilData.clinicas?.nombre || ''
+      const normalize = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim()
+      
+      if (normalize(dbClinicName) !== normalize(clinicName)) {
+        await logout()
+        throw new Error('Credenciales o nombre de clínica incorrectos.')
+      }
+
+      // Si es válido, permitimos la redirección
+      setValidatingClinic(false)
     } catch (error) {
-      console.error('Error detallado de Supabase:', error)
+      console.error('Error en el login:', error)
       setErrorMsg(`Error: ${error.message || 'Credenciales incorrectas o error en el servidor.'}`)
+      setValidatingClinic(false)
     } finally {
       setLoading(false)
     }
@@ -36,14 +57,14 @@ export default function LoginPage() {
 
   // Redirigir si ya está autenticado
   React.useEffect(() => {
-    if (perfil) {
+    if (perfil && !validatingClinic) {
       if (perfil.rol === 'admin') {
         navigate('/')
       } else if (perfil.rol === 'doctor') {
         navigate('/calendario')
       }
     }
-  }, [perfil, navigate])
+  }, [perfil, navigate, validatingClinic])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -64,6 +85,21 @@ export default function LoginPage() {
           )}
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
+              <label htmlFor="clinic-name" className="sr-only">
+                Nombre de la Clínica
+              </label>
+              <input
+                id="clinic-name"
+                name="clinicName"
+                type="text"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                placeholder="Nombre de la Clínica"
+                value={clinicName}
+                onChange={(e) => setClinicName(e.target.value)}
+              />
+            </div>
+            <div>
               <label htmlFor="email-address" className="sr-only">
                 Email
               </label>
@@ -73,7 +109,7 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
                 placeholder="Correo electrónico"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -94,6 +130,14 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end">
+            <div className="text-sm">
+              <Link to="/reset-password" className="font-medium text-primary hover:text-blue-700">
+                ¿Olvidaste tu contraseña?
+              </Link>
             </div>
           </div>
 

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import DoctoresTable from '../components/doctores/DoctoresTable'
 import DoctorFormModal from '../components/doctores/DoctorFormModal'
 import DoctorAgendaPanel from '../components/doctores/DoctorAgendaPanel'
+import { useAuth } from '../context/AuthContext'
 
 export default function DoctoresPage() {
   const [doctores, setDoctores] = useState([])
@@ -14,12 +15,16 @@ export default function DoctoresPage() {
   const [isAgendaOpen, setIsAgendaOpen] = useState(false)
   const [doctorForAgenda, setDoctorForAgenda] = useState(null)
 
+  const { perfil } = useAuth()
+
   const fetchDoctores = async () => {
+    if (!perfil?.clinica_id) return
     setLoading(true)
     try {
       const { data, error } = await supabase
         .from('doctores')
         .select('*')
+        .eq('clinica_id', perfil.clinica_id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -33,8 +38,10 @@ export default function DoctoresPage() {
   }
 
   useEffect(() => {
-    fetchDoctores()
-  }, [])
+    if (perfil?.clinica_id) {
+      fetchDoctores()
+    }
+  }, [perfil?.clinica_id])
 
   const handleOpenNew = () => {
     setDoctorToEdit(null)
@@ -91,8 +98,8 @@ export default function DoctoresPage() {
       {/* Cabecera de la página */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Doctores</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Doctores</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Directorio de profesionales médicos, sus especialidades y disponibilidad.
           </p>
         </div>
@@ -117,7 +124,7 @@ export default function DoctoresPage() {
           placeholder="Buscar por nombre, especialidad, colegiado..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-primary focus:border-primary sm:text-sm"
+          className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-primary focus:border-primary sm:text-sm dark:bg-gray-800 dark:text-white transition-colors"
         />
       </div>
 

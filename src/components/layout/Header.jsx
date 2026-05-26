@@ -14,13 +14,13 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white shadow-sm h-16 flex items-center justify-end px-4 sm:px-6 lg:px-8 border-b border-gray-200">
+    <header className="bg-white dark:bg-gray-800 shadow-sm h-16 flex items-center justify-end px-4 sm:px-6 lg:px-8 border-b border-gray-200 dark:border-gray-700 transition-colors duration-200">
       <div className="flex items-center space-x-4">
         <div className="flex flex-col items-end hidden sm:flex">
-          <span className="text-sm font-medium text-gray-900">
+          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
             {perfil?.nombre || user?.email}
           </span>
-          <span className="text-xs text-gray-500 capitalize">
+          <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
             {perfil?.rol || 'Usuario'}
           </span>
         </div>
@@ -31,7 +31,7 @@ export default function Header() {
 
         <button
           onClick={handleLogout}
-          className="ml-4 p-2 text-gray-400 hover:text-danger rounded-full hover:bg-red-50 transition-colors focus:outline-none"
+          className="ml-4 p-2 text-gray-400 dark:text-gray-300 hover:text-danger dark:hover:text-red-400 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors focus:outline-none"
           title="Cerrar sesión"
         >
           <LogOut className="h-5 w-5" />
